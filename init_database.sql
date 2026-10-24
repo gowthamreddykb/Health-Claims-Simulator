@@ -299,7 +299,8 @@ INSERT INTO `settlements` (`claim_id`, `payee_type`, `amount_inr`, `recorded_by_
 
 
 
-use health_insurance_claims ;
+
+use health_insurance_claims ;git s
 
 show tables ;
 
