@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center py-4 my-2" style="min-height: 80vh;">
+  <div class="card border-0 shadow-2xl overflow-hidden w-100" style="max-width: 900px; border-radius: 1.5rem; border: 1px solid #DDE7E2 !important;">
+    <div class="row g-0">
+      <!-- Left Hero Illustration Pane (Screen 1) -->
+      <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-between p-5 text-white position-relative overflow-hidden" 
+           style="background: linear-gradient(135deg, #0d3f37 0%, #10483F 55%, #175C51 100%);">
+        
+        <!-- Background Vector Waves -->
+        <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25 pe-none">
+          <svg class="w-100 h-100" viewBox="0 0 400 400" preserveAspectRatio="none">
+            <path d="M0,200 C150,300 250,100 400,200 L400,400 L0,400 Z" fill="#267A6A"/>
+            <path d="M0,280 C120,380 280,220 400,320 L400,400 L0,400 Z" fill="#0D3F37"/>
+          </svg>
+        </div>
+
+        <div class="position-relative z-1">
+          <div class="d-flex align-items-center gap-2.5 mb-2">
+            <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; background-color: #E7F1ED;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10483F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <span class="fs-5 fw-extrabold tracking-tight text-white">Health Claims Simulator</span>
+          </div>
+          <p class="text-white-50 small mb-0">Simplifying Claims. Ensuring Better Health Coverage.</p>
+        </div>
+
+        <!-- Central Graphical Shield Illustration -->
+        <div class="position-relative z-1 py-4 text-center my-auto">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-inner" style="width: 100px; height: 100px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(4px);">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#E7F1ED" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="small fw-bold text-white mb-1">Classroom & Enterprise Workflow Engine</div>
+          <div class="text-white-50 small mx-auto" style="font-size: 0.75rem; max-width: 280px; line-height: 1.4;">
+            Multi-role tracking from submission to officer assessment and simulated settlement.
+          </div>
+        </div>
+
+        <div class="position-relative z-1 text-white-50 border-top pt-3" style="font-size: 0.68rem; border-color: rgba(255,255,255,0.15) !important;">
+          Synthetic simulation. No actual policy underwriting or bank transfer.
+        </div>
+      </div>
+
+      <!-- Right Login Form Pane (Screen 1) -->
+      <div class="col-lg-6 p-4 p-md-5 bg-white d-flex flex-column justify-content-center">
+        <div class="mb-4">
+          <h2 class="fw-extrabold text-dark mb-1" style="color: #172D2A; letter-spacing: -0.02em;">Welcome Back</h2>
+          <p class="text-muted small mb-0">Sign in to your account to continue</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}" class="space-y-3">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label text-dark small fw-bold mb-1" for="username">Username</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+              {{ form.username(class="form-control border-start-0", id="username", placeholder="Enter your username", style="background-color: #F9FCFA; border-color: #DDE7E2;") }}
+            </div>
+            {% for error in form.username.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label text-dark small fw-bold mb-1" for="password">Password</label>
+            <div class="input-group position-relative">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+              {{ form.password(class="form-control border-start-0 pe-5", id="password", placeholder="Enter your password", style="background-color: #F9FCFA; border-color: #DDE7E2;") }}
+              <button type="button" class="btn btn-sm text-muted position-absolute end-0 top-50 translate-middle-y me-1 z-3" onclick="togglePasswordVisibility()" style="border: none; background: transparent;">
+                <i id="eye-icon" class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% for error in form.password.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="show-password-toggle" onchange="syncPasswordToggle(this.checked)">
+              <label class="form-check-label small text-muted" for="show-password-toggle">Show password</label>
+            </div>
+            <div class="form-check">
+              {{ form.remember_me(class="form-check-input", id="remember_me") }}
+              <label class="form-check-label small text-muted" for="remember_me">Remember Me</label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-canopy-primary w-100 py-2.5 justify-content-center fw-bold shadow-sm" style="border-radius: 0.75rem; background-color: #10483F;">
+            Sign In
+          </button>
+        </form>
+
+        <!-- Quick Demo Switcher Pane -->
+       <!--  <div class="p-3 rounded-3 mt-4 border" style="background-color: #F9FCFA; border-color: #DDE7E2 !important;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-muted fw-bold" style="font-size: 0.75rem;">
+              <i class="bi bi-person-badge me-1"></i> Quick Role Switch / Sign In
+            </span>
+            <span class="text-muted" style="font-size: 0.68rem;">1-Click Role Login</span>
+          </div>
+          <div class="d-flex flex-wrap gap-1.5" style="font-size: 0.75rem;">
+            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('aasha', 'Password123!')">
+              <i class="bi bi-shield-check text-success me-1"></i> Policyholder (aasha)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('city_hospital', 'Password123!')">
+              <i class="bi bi-hospital text-primary me-1"></i> Hospital (city_hospital)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('officer_meera', 'Password123!')">
+              <i class="bi bi-clipboard2-check text-warning me-1"></i> Claims Officer (officer_meera)
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('admin_demo', 'Password123!')">
+              <i class="bi bi-gear text-dark me-1"></i> Administrator (admin_demo)
+            </button>
+          </div>
+          <div class="text-muted mt-2" style="font-size: 0.68rem;">
+            Click any role above to automatically authenticate and navigate directly to that role's dashboard.
+          </div>
+        </div> -->
+
+        <script>
+          function togglePasswordVisibility() {
+            const pwd = document.getElementById('password');
+            const icon = document.getElementById('eye-icon');
+            const chk = document.getElementById('show-password-toggle');
+            if (pwd) {
+              const isText = pwd.type === 'text';
+              pwd.type = isText ? 'password' : 'text';
+              if (icon) icon.className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
+              if (chk) chk.checked = !isText;
+            }
+          }
+          function syncPasswordToggle(checked) {
+            const pwd = document.getElementById('password');
+            const icon = document.getElementById('eye-icon');
+            if (pwd) pwd.type = checked ? 'text' : 'password';
+            if (icon) icon.className = checked ? 'bi bi-eye-slash' : 'bi bi-eye';
+          }
+          function quickFillAndLogin(u, p) {
+            const uField = document.getElementById('username');
+            const pField = document.getElementById('password');
+            if (uField && pField) {
+              uField.value = u;
+              pField.value = p;
+              uField.form.submit();
+            }
+          }
+        </script>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

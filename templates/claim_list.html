@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Claims Management - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Claims Management</h3>
+    <p class="text-muted mb-0 small">Search, filter and track all your claims across processing stages.</p>
+  </div>
+  {% if current_user.is_policyholder or current_user.is_hospital_desk %}
+  <a href="{{ url_for('new_claim') }}" class="btn btn-canopy-primary">
+    <i class="bi bi-plus-lg"></i> New Claim
+  </a>
+  {% endif %}
+</div>
+
+<!-- Combined Search & Filter Bar (Screen 5) -->
+<div class="canopy-card p-3 mb-4">
+  <form method="GET" action="{{ url_for('claim_list') }}" class="row g-2 align-items-center">
+    <div class="col-12 col-md-3">
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" value="{{ search_q }}" class="form-control border-start-0" placeholder="Search Claim ID or Member...">
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Status</option>
+        <option value="draft" {% if status_f == 'draft' %}selected{% endif %}>Draft</option>
+        <option value="submitted" {% if status_f == 'submitted' %}selected{% endif %}>Submitted</option>
+        <option value="in_review" {% if status_f == 'in_review' %}selected{% endif %}>In Review</option>
+        <option value="more_info" {% if status_f == 'more_info' %}selected{% endif %}>More Info</option>
+        <option value="approved" {% if status_f == 'approved' %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if status_f == 'rejected' %}selected{% endif %}>Rejected</option>
+        <option value="paid" {% if status_f == 'paid' %}selected{% endif %}>Paid</option>
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="type" class="form-select">
+        <option value="">All Types</option>
+        <option value="cashless" {% if type_f == 'cashless' %}selected{% endif %}>Cashless</option>
+        <option value="reimbursement" {% if type_f == 'reimbursement' %}selected{% endif %}>Reimbursement</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
+      <select name="hospital" class="form-select">
+        <option value="">All Hospitals</option>
+        {% for h in hospitals %}
+        <option value="{{ h.hospital_id }}" {% if hospital_f == h.hospital_id|string %}selected{% endif %}>{{ h.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-canopy-primary w-100 justify-content-center">
+        Apply
+      </button>
+      <a href="{{ url_for('claim_list') }}" class="btn btn-outline-secondary">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Status Summary Cards Row (Screen 5) -->
+<div class="row g-2 mb-4">
+  <div class="col">
+    <div class="metric-stat-card p-2 text-center d-block">
+      <div class="text-muted small fw-semibold">Total</div>
+      <div class="fw-bold fs-5">{{ counts.total }}</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="metric-stat-card p-2 text-center d-block" style="border-top: 3px solid #0284c7;">
+      <div class="text-muted small fw-semibold">Submitted</div>
+      <div class="fw-bold fs-5 text-primary">{{ counts.submitted }}</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="metric-stat-card p-2 text-center d-block" style="border-top: 3px solid #d97706;">
+      <div class="text-muted small fw-semibold">In Review</div>
+      <div class="fw-bold fs-5 text-warning">{{ counts.in_review }}</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="metric-stat-card p-2 text-center d-block" style="border-top: 3px solid #16a34a;">
+      <div class="text-muted small fw-semibold">Approved</div>
+      <div class="fw-bold fs-5 text-success">{{ counts.approved }}</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="metric-stat-card p-2 text-center d-block" style="border-top: 3px solid #dc2626;">
+      <div class="text-muted small fw-semibold">Rejected</div>
+      <div class="fw-bold fs-5 text-danger">{{ counts.rejected }}</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="metric-stat-card p-2 text-center d-block" style="border-top: 3px solid #ea580c;">
+      <div class="text-muted small fw-semibold">More Info</div>
+      <div class="fw-bold fs-5 text-secondary">{{ counts.more_info }}</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="metric-stat-card p-2 text-center d-block" style="border-top: 3px solid #059669;">
+      <div class="text-muted small fw-semibold">Paid</div>
+      <div class="fw-bold fs-5" style="color: #059669;">{{ counts.paid }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Claims Table (Screen 5) -->
+<div class="canopy-card mb-4">
+  <div class="table-responsive">
+    <table class="canopy-table">
+      <thead>
+        <tr>
+          <th>Claim ID</th>
+          <th>Member</th>
+          <th>Hospital</th>
+          <th>Type</th>
+          <th class="text-end">Amount</th>
+          <th>Status</th>
+          <th>Last Updated</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in claims %}
+        <tr>
+          <td class="fw-bold">CLM-{{ "%06d"|format(c.claim_id) }}</td>
+          <td>
+            <div class="fw-semibold">{{ c.member.display_name }}</div>
+            <div class="text-muted" style="font-size: 0.72rem;">Policy #{{ c.policy_id }}</div>
+          </td>
+          <td class="text-truncate" style="max-width: 160px;">{{ c.hospital.name }}</td>
+          <td>
+            <span class="badge bg-light text-dark border text-capitalize">
+              {{ c.claim_type }}
+            </span>
+          </td>
+          <td class="text-end fw-bold" style="color: var(--primary-forest);">
+            {{ format_inr(c.requested_amount_inr) }}
+          </td>
+          <td>
+            <span class="status-pill status-{{ c.status }}">
+              {{ c.status.replace('_', ' ') }}
+            </span>
+          </td>
+          <td class="text-muted small">
+            {{ c.updated_at.strftime('%d %b %Y') if c.updated_at else c.admission_date.strftime('%d %b %Y') }}
+          </td>
+          <td>
+            <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm btn-canopy-outline py-1 px-3" style="font-size: 0.8rem;">
+              View
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-5 text-muted">
+            <i class="bi bi-search fs-2 d-block mb-2"></i>
+            No claims matched your search or filter parameters.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

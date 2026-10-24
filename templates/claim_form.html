@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Claim' if is_edit else 'New Claim' }} - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-10">
+    <!-- Top Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">
+          New Claim - {{ 'Reimbursement' if current_user.is_policyholder else 'Cashless' }}
+        </h3>
+        <p class="text-muted small mb-0">Fill in the medical and financial details to submit your claim.</p>
+      </div>
+      <a href="{{ url_for('claim_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="bi bi-x-lg me-1"></i> Cancel
+      </a>
+    </div>
+
+    <!-- Stepper Header (Screen 7) -->
+    <div class="canopy-card p-3 mb-4">
+      <div class="d-flex justify-content-around align-items-center text-center">
+        <button type="button" id="step-btn-1" class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2">
+          <span class="step-bubble active">1</span>
+          <span class="fw-bold small" style="color: var(--primary-forest);">Claim Details</span>
+        </button>
+        <div class="border-top flex-grow-1 mx-3" style="border-color: var(--border-color);"></div>
+        <button type="button" id="step-btn-2" class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2">
+          <span class="step-bubble inactive">2</span>
+          <span class="text-muted small fw-semibold">Documents</span>
+        </button>
+        <div class="border-top flex-grow-1 mx-3" style="border-color: var(--border-color);"></div>
+        <button type="button" id="step-btn-3" class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2">
+          <span class="step-bubble inactive">3</span>
+          <span class="text-muted small fw-semibold">Review</span>
+        </button>
+      </div>
+    </div>
+
+    <form method="POST" id="main-claim-form" class="canopy-card">
+      {{ form.hidden_tag() }}
+
+      <!-- STEP 1: Claim Details -->
+      <div id="step-pane-1">
+        <h5 class="fw-bold mb-3" style="color: var(--primary-forest);">1. Policy, Member & Treatment Details</h5>
+        
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="policy_id">Select Policy <span class="text-danger">*</span></label>
+            {{ form.policy_id(class="form-select", id="policy_id") }}
+            {% for err in form.policy_id.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="member_id">Select Covered Member <span class="text-danger">*</span></label>
+            {{ form.member_id(class="form-select", id="member_id") }}
+            {% for err in form.member_id.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="hospital_id">Hospital Desk <span class="text-danger">*</span></label>
+            {{ form.hospital_id(class="form-select", id="hospital_id") }}
+            {% for err in form.hospital_id.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+            {% if current_user.is_hospital_desk %}
+            <div class="form-text small text-muted">Fixed to your authorized network facility.</div>
+            {% endif %}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="claim_type">Claim Type <span class="text-danger">*</span></label>
+            {{ form.claim_type(class="form-select", id="claim_type") }}
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="treatment_type">Treatment Type <span class="text-danger">*</span></label>
+            {{ form.treatment_type(class="form-select", id="treatment_type") }}
+            {% for err in form.treatment_type.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-6 col-md-4">
+            <label class="form-label" for="admission_date">Admission Date <span class="text-danger">*</span></label>
+            {{ form.admission_date(class="form-control", type="date", id="admission_date") }}
+            {% for err in form.admission_date.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-6 col-md-4">
+            <label class="form-label" for="discharge_date">Discharge Date <span class="text-danger">*</span></label>
+            {{ form.discharge_date(class="form-control", type="date", id="discharge_date") }}
+            {% for err in form.discharge_date.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label mb-0" for="requested_amount_inr">Requested Amount (₹) <span class="text-danger">*</span></label>
+              <span class="badge rounded-pill" style="background-color: var(--pale-mint); color: var(--primary-forest);" id="policy-limit-badge">
+                Max Limit: Calculating...
+              </span>
+            </div>
+            {{ form.requested_amount_inr(class="form-control", placeholder="e.g. 42000.00", id="requested_amount_inr") }}
+            <div id="amount-validation-error" class="text-danger small mt-1 fw-bold d-none">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <span id="amount-error-text">Amount exceeds available policy coverage limit.</span>
+              <button type="button" id="btn-clamp-max" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 fw-semibold" style="font-size: 0.72rem;">Set to Max Limit</button>
+            </div>
+            <div id="amount-validation-ok" class="text-success small mt-1 fw-semibold d-none">
+              <i class="bi bi-check-circle-fill me-1"></i> Amount is within policy coverage limit.
+            </div>
+            {% for err in form.requested_amount_inr.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="description">Medical Symptoms & Diagnosis</label>
+            {{ form.description(class="form-control", rows="2", placeholder="Medical treatment for fever and observation...", id="description") }}
+            {% for err in form.description.errors %}
+              <div class="text-danger small">{{ err }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+          <button type="button" id="btn-next-step2" class="btn btn-canopy-primary px-4">
+            Next: Documents <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Documents -->
+      <div id="step-pane-2" style="display: none;">
+        <h5 class="fw-bold mb-2" style="color: var(--primary-forest);">2. Supporting Documents Checklist</h5>
+        <p class="text-muted small mb-3">Mark available digital records and hospital paperwork for this claim submission.</p>
+
+        <div class="d-flex flex-column gap-3 mb-4">
+          <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-file-earmark-medical fs-3" style="color: var(--primary-forest);"></i>
+              <div>
+                <div class="fw-bold text-dark">Original Hospital Bill & Receipt</div>
+                <div class="text-muted small">Itemized breakdown of room charges, nursing, and medicines.</div>
+              </div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" checked id="chk-doc-bill">
+              <label class="form-check-label small fw-semibold text-success" for="chk-doc-bill">Included</label>
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-file-earmark-text fs-3" style="color: var(--primary-forest);"></i>
+              <div>
+                <div class="fw-bold text-dark">Official Discharge Summary</div>
+                <div class="text-muted small">Medical narrative detailing admission symptoms and discharge instructions.</div>
+              </div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" checked id="chk-doc-summary">
+              <label class="form-check-label small fw-semibold text-success" for="chk-doc-summary">Included</label>
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-prescription fs-3 text-secondary"></i>
+              <div>
+                <div class="fw-bold text-dark">Doctor's Clinical Prescriptions</div>
+                <div class="text-muted small">Attending physician's diagnosis and medical advice.</div>
+              </div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" checked id="chk-doc-presc">
+              <label class="form-check-label small fw-semibold text-success" for="chk-doc-presc">Included</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+          <button type="button" id="btn-back-step1" class="btn btn-outline-secondary px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Details
+          </button>
+          <button type="button" id="btn-next-step3" class="btn btn-canopy-primary px-4">
+            Next: Review Claim <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Review & Submit -->
+      <div id="step-pane-3" style="display: none;">
+        <h5 class="fw-bold mb-2" style="color: var(--primary-forest);">3. Review & Confirmation</h5>
+        <p class="text-muted small mb-3">Please verify the details below before submitting your claim.</p>
+
+        <!-- Round-Robin Assignment Banner -->
+        <div class="p-3 mb-3 rounded-3 border" style="background-color: var(--pale-mint); border-color: #C9DAD5;">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-arrow-repeat fs-5" style="color: var(--primary-forest);"></i>
+              <div>
+                <strong style="color: var(--primary-forest);">Automated Round-Robin Review Allocation:</strong>
+                <span class="small text-muted d-block">Upon submission, this claim will automatically be assigned to the next available Claims Officer via Round-Robin rotation.</span>
+              </div>
+            </div>
+            <span class="badge rounded-pill text-white px-2.5 py-1" style="background-color: var(--primary-forest); font-size: 0.72rem;">
+              Round-Robin Enabled
+            </span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light rounded-3 border mb-4">
+          <div class="row g-2 small">
+            <div class="col-6"><strong>Policy:</strong> Selected Active Policy</div>
+            <div class="col-6"><strong>Claim Type:</strong> <span class="text-capitalize">{{ 'Reimbursement' if current_user.is_policyholder else 'Cashless' }}</span></div>
+            <div class="col-6"><strong>Checklist Status:</strong> Verified & Attached</div>
+            <div class="col-6"><strong>Processing Unit:</strong> Automated Canopy Rules Engine</div>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mt-4 pt-3 border-top">
+          <button type="button" id="btn-back-step2" class="btn btn-outline-secondary px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Documents
+          </button>
+          <div class="d-flex gap-2">
+            {{ form.save_draft(class="btn btn-outline-dark px-3 rounded-pill") }}
+            {{ form.submit_claim(class="btn btn-canopy-primary px-4") }}
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const policyLimits = {{ policy_limits|tojson if policy_limits else '{}' }};
+  const policySelect = document.getElementById('policy_id');
+  const amountInput = document.getElementById('requested_amount_inr');
+  const limitBadge = document.getElementById('policy-limit-badge');
+  const errBox = document.getElementById('amount-validation-error');
+  const okBox = document.getElementById('amount-validation-ok');
+  const errText = document.getElementById('amount-error-text');
+  const clampBtn = document.getElementById('btn-clamp-max');
+  const nextBtn = document.getElementById('btn-next-step2');
+  const submitBtn = document.querySelector('button[name="submit_claim"]') || document.querySelector('input[name="submit_claim"]');
+
+  function getCurrentLimit() {
+    if (!policySelect) return 100000;
+    const polId = policySelect.value;
+    if (policyLimits && policyLimits[polId]) {
+      return policyLimits[polId].max_allowed || policyLimits[polId].annual_limit || 100000;
+    }
+    return 100000;
+  }
+
+  function validateAmount() {
+    const limit = getCurrentLimit();
+    if (limitBadge) {
+      limitBadge.textContent = 'Max Policy Cover: ₹' + Number(limit).toLocaleString('en-IN');
+    }
+
+    if (!amountInput) return;
+    const val = parseFloat(amountInput.value) || 0;
+
+    if (val > limit) {
+      amountInput.classList.add('is-invalid');
+      if (errBox) {
+        errBox.classList.remove('d-none');
+        if (errText) errText.textContent = 'Claim amount cannot exceed policy coverage limit of ₹' + Number(limit).toLocaleString('en-IN') + '.';
+      }
+      if (okBox) okBox.classList.add('d-none');
+      if (nextBtn) nextBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+    } else if (val <= 0) {
+      if (errBox) {
+        errBox.classList.remove('d-none');
+        if (errText) errText.textContent = 'Requested claim amount must be greater than zero.';
+      }
+      if (okBox) okBox.classList.add('d-none');
+      if (nextBtn) nextBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+    } else {
+      amountInput.classList.remove('is-invalid');
+      if (errBox) errBox.classList.add('d-none');
+      if (okBox) {
+        okBox.classList.remove('d-none');
+        okBox.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Amount is within policy coverage limit (₹' + Number(limit - val).toLocaleString('en-IN') + ' remaining).';
+      }
+      if (nextBtn) nextBtn.disabled = false;
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  if (policySelect) {
+    policySelect.addEventListener('change', () => {
+      validateAmount();
+    });
+  }
+
+  if (amountInput) {
+    amountInput.addEventListener('input', validateAmount);
+    amountInput.addEventListener('change', validateAmount);
+  }
+
+  if (clampBtn) {
+    clampBtn.addEventListener('click', () => {
+      const limit = getCurrentLimit();
+      if (amountInput) {
+        amountInput.value = limit;
+        validateAmount();
+      }
+    });
+  }
+
+  // Stepper navigation logic
+  const stepBtn1 = document.getElementById('step-btn-1');
+  const stepBtn2 = document.getElementById('step-btn-2');
+  const stepBtn3 = document.getElementById('step-btn-3');
+  const pane1 = document.getElementById('step-pane-1');
+  const pane2 = document.getElementById('step-pane-2');
+  const pane3 = document.getElementById('step-pane-3');
+  const btnNextStep2 = document.getElementById('btn-next-step2');
+  const btnNextStep3 = document.getElementById('btn-next-step3');
+  const btnBackStep1 = document.getElementById('btn-back-step1');
+  const btnBackStep2 = document.getElementById('btn-back-step2');
+
+  function showStep(s) {
+    if (pane1) pane1.style.display = (s === 1) ? 'block' : 'none';
+    if (pane2) pane2.style.display = (s === 2) ? 'block' : 'none';
+    if (pane3) pane3.style.display = (s === 3) ? 'block' : 'none';
+  }
+
+  if (btnNextStep2) {
+    btnNextStep2.addEventListener('click', () => {
+      validateAmount();
+      const limit = getCurrentLimit();
+      const val = parseFloat(amountInput?.value) || 0;
+      if (val > limit) {
+        alert('Claim amount cannot exceed policy coverage limit of ₹' + Number(limit).toLocaleString('en-IN'));
+        return;
+      }
+      showStep(2);
+    });
+  }
+
+  if (btnBackStep1) btnBackStep1.addEventListener('click', () => showStep(1));
+  if (btnNextStep3) btnNextStep3.addEventListener('click', () => showStep(3));
+  if (btnBackStep2) btnBackStep2.addEventListener('click', () => showStep(2));
+
+  validateAmount();
+});
+</script>
+{% endblock %}

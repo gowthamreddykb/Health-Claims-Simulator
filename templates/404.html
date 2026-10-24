@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}404 Page Not Found - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center py-5" style="min-height: 70vh;">
+  <div class="card p-4 p-md-5 text-center shadow-xl border" style="max-width: 440px; width: 100%; border-radius: 1.5rem; border-color: #DDE7E2 !important; background: #ffffff;">
+    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-inner" style="width: 80px; height: 80px; background-color: #E7F1ED; color: #10483F;">
+      <i class="bi bi-search fs-1"></i>
+    </div>
+    
+    <div class="display-4 fw-extrabold mb-1" style="color: #10483F; letter-spacing: -0.02em;">404</div>
+    <h4 class="fw-bold text-dark mb-2">Page Not Found</h4>
+    <p class="text-muted small mb-4" style="line-height: 1.5;">
+      The page you're looking for might have been moved or does not exist in our simulator.
+    </p>
+
+    <a href="{{ url_for('dashboard') }}" class="btn btn-canopy-primary w-100 justify-content-center py-2.5 fw-bold shadow-xs">
+      <i class="bi bi-house-door-fill me-1"></i> Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

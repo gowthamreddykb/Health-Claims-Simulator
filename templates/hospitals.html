@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Hospital Directory - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Hospital Directory</h3>
+    <p class="text-muted mb-0 small">Find network hospitals for cashless treatment and partner medical desks.</p>
+  </div>
+</div>
+
+<!-- Search & Filter Card (Screen 4) -->
+<div class="canopy-card p-3 mb-4">
+  <form method="GET" action="{{ url_for('hospitals') }}" class="row g-2 align-items-center">
+    <div class="col-12 col-md-4">
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" name="name" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search hospital name...">
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <select name="city" class="form-select">
+        <option value="">All Cities</option>
+        {% for c in cities %}
+        <option value="{{ c }}" {% if selected_city == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
+      <select name="network" class="form-select">
+        <option value="">All Network Status</option>
+        <option value="1" {% if selected_network == '1' %}selected{% endif %}>Network (Cashless)</option>
+        <option value="0" {% if selected_network == '0' %}selected{% endif %}>Non-Network</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-canopy-primary w-100 justify-content-center">
+        Search
+      </button>
+      <a href="{{ url_for('hospitals') }}" class="btn btn-outline-secondary">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Hospitals Table (Screen 4) -->
+<div class="canopy-card mb-4">
+  <div class="table-responsive">
+    <table class="canopy-table">
+      <thead>
+        <tr>
+          <th>Hospital Name</th>
+          <th>City</th>
+          <th>Network Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in hospitals %}
+        <tr>
+          <td class="fw-bold">
+            <i class="bi bi-hospital me-2" style="color: var(--secondary-green);"></i>
+            {{ h.name }}
+          </td>
+          <td>{{ h.city }}</td>
+          <td>
+            {% if h.network_status %}
+              <span class="badge-network">
+                <i class="bi bi-check-circle-fill me-1"></i> Network
+              </span>
+            {% else %}
+              <span class="badge-non-network">
+                <i class="bi bi-x-circle-fill me-1"></i> Non-Network
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#viewHospitalModal{{ h.hospital_id }}">
+                <i class="bi bi-eye me-1"></i> View
+              </button>
+              {% if current_user.is_hospital_desk and current_user.hospital_id == h.hospital_id %}
+                <span class="badge bg-light text-success border">My Desk</span>
+              {% elif current_user.is_policyholder and h.network_status %}
+                <span class="badge bg-success-subtle text-success border">Cashless</span>
+              {% endif %}
+            </div>
+
+            <!-- View Hospital Modal - Identical size to Report PDF Preview (max-w-4xl, 90vh) -->
+            <div class="modal fade" id="viewHospitalModal{{ h.hospital_id }}" tabindex="-1" aria-labelledby="viewHospLabel{{ h.hospital_id }}" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered" style="max-width: 896px; width: 95%; margin: 1.5rem auto;">
+                <div class="modal-content shadow-2xl" style="height: 90vh; border-radius: 1rem; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #DDE7E2;">
+                  <div class="modal-header text-white" style="background-color: var(--primary-forest, #10483F); padding: 1.25rem 1.5rem; flex-shrink: 0;">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: rgba(255,255,255,0.12);">
+                        <i class="bi bi-hospital fs-4 text-white"></i>
+                      </div>
+                      <div>
+                        <div class="d-flex align-items-center gap-2">
+                          <h5 class="modal-title fw-bold text-white mb-0" id="viewHospLabel{{ h.hospital_id }}">{{ h.name }}</h5>
+                          {% if h.network_status %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 small">Network</span>
+                          {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-0.5 small">Non-Network</span>
+                          {% endif %}
+                        </div>
+                        <div class="small text-white-50 mt-1 d-flex align-items-center gap-2">
+                          <span><i class="bi bi-geo-alt me-1"></i>{{ h.city }}</span>
+                          <span>•</span>
+                          <span>Hospital ID: #{{ h.hospital_id }}</span>
+                          <span>•</span>
+                          <span>{{ 'Cashless & Reimbursement' if h.network_status else 'Reimbursement Only' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body p-4" style="flex: 1 1 auto; overflow-y: auto; background-color: #F9FCFA;">
+                    <!-- Key Metric Highlights -->
+                    <div class="row g-3 mb-4">
+                      <div class="col-sm-4">
+                        <div class="p-3 bg-white rounded-3 border" style="border-color: #DDE7E2 !important;">
+                          <div class="text-muted small fw-medium">Network Status</div>
+                          <div class="fw-bold mt-1 fs-6">
+                            {% if h.network_status %}
+                              <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Approved Partner</span>
+                            {% else %}
+                              <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i> Non-Network Facility</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-sm-4">
+                        <div class="p-3 bg-white rounded-3 border" style="border-color: #DDE7E2 !important;">
+                          <div class="text-muted small fw-medium">City Location</div>
+                          <div class="fw-bold mt-1 fs-6 text-dark">{{ h.city }}</div>
+                        </div>
+                      </div>
+                      <div class="col-sm-4">
+                        <div class="p-3 bg-white rounded-3 border" style="border-color: #DDE7E2 !important;">
+                          <div class="text-muted small fw-medium">Treatment Modes</div>
+                          <div class="fw-bold mt-1 fs-6" style="color: var(--primary-forest, #10483F);">Inpatient & Day Care</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Facility Details Card -->
+                    <div class="card border mb-3 rounded-3" style="border-color: #DDE7E2 !important;">
+                      <div class="card-body p-3">
+                        <h6 class="fw-bold mb-2" style="color: var(--primary-forest, #10483F);">
+                          <i class="bi bi-shield-check me-1"></i> Coverage & Admission Guidelines
+                        </h6>
+                        <p class="small text-muted mb-2">
+                          {% if h.network_status %}
+                            This healthcare provider is an authorized partner in our cashless treatment network. Eligible policyholders can receive care without paying out-of-pocket medical bills upfront. Simply present your Policy Number at the hospital reception desk for pre-authorization.
+                          {% else %}
+                            This hospital is currently outside our direct cashless network. Policyholders may still receive care here and file reimbursement claims post-discharge by submitting original itemized bills and discharge summary.
+                          {% endif %}
+                        </p>
+                        <div class="p-2.5 rounded-3 bg-light small text-muted d-flex justify-content-between align-items-center">
+                          <span><strong>Registration Verification:</strong> Verified Medical Center</span>
+                          <span><strong>24/7 Desk Connection:</strong> Enabled</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="p-3 rounded-3 bg-white border small text-muted" style="border-color: #DDE7E2 !important;">
+                      <div class="fw-bold text-dark mb-1">Standard Checklist for Admission at this Facility</div>
+                      <ul class="mb-0 ps-3">
+                        <li>Government issued Photo ID of covered member</li>
+                        <li>Canopy Health Active Insurance Policy Certificate</li>
+                        <li>Doctor's clinical referral notes and admission recommendation</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="modal-footer bg-white border-top p-3 d-flex justify-content-between" style="border-color: #DDE7E2 !important; flex-shrink: 0;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">
+                      <i class="bi bi-x-lg me-1"></i> Close
+                    </button>
+                    {% if current_user.is_policyholder and h.network_status %}
+                    <a href="{{ url_for('new_claim', hospital_id=h.hospital_id) }}" class="btn btn-canopy-primary btn-sm px-3">
+                      <i class="bi bi-plus-lg me-1"></i> File Cashless Claim Here
+                    </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center py-4 text-muted">
+            No hospitals found matching your criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

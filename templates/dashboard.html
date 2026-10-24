@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h2 class="fw-bold mb-1" style="color: var(--primary-forest);">Welcome, {{ current_user.display_name }}</h2>
+    <p class="text-muted mb-0 small">
+      {% if current_user.is_policyholder %}
+        Here's what's happening with your health insurance and claims.
+      {% elif current_user.is_hospital_desk %}
+        Overview of cashless claims and desk submissions for {{ current_user.hospital.name if current_user.hospital else 'Hospital' }}.
+      {% elif current_user.is_claims_officer %}
+        Claims assessment queue and your assigned workloads.
+      {% else %}
+        System-wide overview, claims financials, and administration.
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="d-flex align-items-center gap-2">
+    {% if current_user.is_policyholder %}
+      <a href="{{ url_for('buy_policy') }}" class="btn-canopy-primary">
+        <i class="bi bi-shield-plus"></i> Buy Policy
+      </a>
+      <a href="{{ url_for('new_claim') }}" class="btn-canopy-outline">
+        <i class="bi bi-plus-circle"></i> Create Claim
+      </a>
+      <a href="{{ url_for('my_policies') }}" class="btn-canopy-outline">
+        <i class="bi bi-shield-check"></i> My Policies
+      </a>
+    {% elif current_user.is_hospital_desk %}
+      <a href="{{ url_for('new_claim') }}" class="btn-canopy-primary">
+        <i class="bi bi-plus-circle"></i> New Cashless Claim
+      </a>
+    {% elif current_user.is_claims_officer %}
+      <a href="{{ url_for('review_queue') }}" class="btn-canopy-primary">
+        <i class="bi bi-inbox-fill"></i> View Review Queue
+      </a>
+    {% elif current_user.is_admin %}
+      <a href="{{ url_for('reports') }}" class="btn-canopy-primary">
+        <i class="bi bi-graph-up"></i> Reports & Analytics
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 4 Summary Metric Cards (Screen 2) -->
+<div class="row g-3 mb-4">
+  {% if current_user.is_policyholder %}
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #e7f1ed; color: #10483F;">
+          <i class="bi bi-shield-fill-check"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.active_policies }}</div>
+          <div class="metric-stat-label">Active Policies</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #e0f2fe; color: #0284c7;">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.covered_members }}</div>
+          <div class="metric-stat-label">Covered Members</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #fef3c7; color: #d97706;">
+          <i class="bi bi-file-earmark-medical"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.total_claims }}</div>
+          <div class="metric-stat-label">Recent Claims</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #fee2e2; color: #dc2626;">
+          <i class="bi bi-exclamation-circle-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.pending_actions }}</div>
+          <div class="metric-stat-label">Pending Actions</div>
+        </div>
+      </div>
+    </div>
+
+  {% elif current_user.is_hospital_desk %}
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #e7f1ed; color: #10483F;">
+          <i class="bi bi-hospital"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.total_hospital_claims }}</div>
+          <div class="metric-stat-label">Hospital Claims</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #e0f2fe; color: #0284c7;">
+          <i class="bi bi-send-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.submitted_claims }}</div>
+          <div class="metric-stat-label">Submitted</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #fef3c7; color: #d97706;">
+          <i class="bi bi-clock-history"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.in_review_claims }}</div>
+          <div class="metric-stat-label">In Review</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #fee2e2; color: #dc2626;">
+          <i class="bi bi-file-earmark-x"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.missing_docs_claims }}</div>
+          <div class="metric-stat-label">Missing Docs</div>
+        </div>
+      </div>
+    </div>
+
+  {% elif current_user.is_claims_officer %}
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #e7f1ed; color: #10483F;">
+          <i class="bi bi-person-check-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.assigned_to_me }}</div>
+          <div class="metric-stat-label">Assigned to Me</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #e0f2fe; color: #0284c7;">
+          <i class="bi bi-inbox-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.awaiting_assignment }}</div>
+          <div class="metric-stat-label">Unassigned</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #ffedd5; color: #ea580c;">
+          <i class="bi bi-question-circle-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.more_info }}</div>
+          <div class="metric-stat-label">More Info</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #fef3c7; color: #d97706;">
+          <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.awaiting_decision }}</div>
+          <div class="metric-stat-label">In Review</div>
+        </div>
+      </div>
+    </div>
+
+  {% else %}
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #e7f1ed; color: #10483F;">
+          <i class="bi bi-folder-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.total_claims }}</div>
+          <div class="metric-stat-label">Total Claims</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #dcfce7; color: #16a34a;">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.approved_claims }}</div>
+          <div class="metric-stat-label">Approved</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #fee2e2; color: #dc2626;">
+          <i class="bi bi-x-circle-fill"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.rejected_claims }}</div>
+          <div class="metric-stat-label">Rejected</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="metric-stat-card shadow-sm">
+        <div class="metric-icon-box" style="background: #d1fae5; color: #059669;">
+          <i class="bi bi-cash-stack"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ metrics.paid_settlements }}</div>
+          <div class="metric-stat-label">Paid Settlements</div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Main Activity & Sidebar Row -->
+<div class="row g-4">
+  <!-- Recent Claims Table -->
+  <div class="col-12 col-lg-8">
+    <div class="canopy-card h-100 mb-0">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold mb-0" style="color: var(--primary-forest);">Recent Claims</h5>
+        <a href="{{ url_for('claim_list') }}" class="text-decoration-none small fw-semibold" style="color: var(--secondary-green);">
+          View All <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+
+      <div class="table-responsive">
+        <table class="canopy-table">
+          <thead>
+            <tr>
+              <th>Claim ID</th>
+              <th>Member</th>
+              <th>Hospital</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th class="text-end">Amount</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in metrics.recent_claims %}
+            <tr>
+              <td class="fw-bold">CLM-{{ "%06d"|format(c.claim_id) }}</td>
+              <td>{{ c.member.display_name }}</td>
+              <td class="text-truncate" style="max-width: 140px;">{{ c.hospital.name }}</td>
+              <td class="text-capitalize">{{ c.claim_type }}</td>
+              <td>
+                <span class="status-pill status-{{ c.status }}">
+                  {{ c.status.replace('_', ' ') }}
+                </span>
+              </td>
+              <td class="text-end fw-semibold">{{ format_inr(c.requested_amount_inr) }}</td>
+              <td class="text-muted small">{{ c.admission_date.strftime('%d %b %Y') }}</td>
+              <td>
+                <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm btn-canopy-outline py-1 px-2" style="font-size: 0.78rem;">
+                  View
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                No claims recorded yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Sidebar Quick Actions & Distribution -->
+  <div class="col-12 col-lg-4">
+    <!-- Quick Actions Card -->
+    <div class="canopy-card mb-4">
+      <h6 class="fw-bold mb-3" style="color: var(--primary-forest);">Quick Actions</h6>
+      <div class="d-flex flex-column gap-2">
+        {% if current_user.is_policyholder %}
+          <a href="{{ url_for('new_claim') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2">
+            <i class="bi bi-file-earmark-plus me-2"></i> Submit Reimbursement Claim
+          </a>
+          <a href="{{ url_for('hospitals') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2" style="background-color: var(--secondary-green);">
+            <i class="bi bi-hospital me-2"></i> Find Network Hospitals
+          </a>
+          <a href="{{ url_for('my_policies') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2" style="background-color: var(--active-nav);">
+            <i class="bi bi-shield me-2"></i> View My Policies
+          </a>
+        {% elif current_user.is_hospital_desk %}
+          <a href="{{ url_for('new_claim') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2">
+            <i class="bi bi-plus-circle me-2"></i> Create Cashless Request
+          </a>
+          <a href="{{ url_for('claim_list') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2" style="background-color: var(--secondary-green);">
+            <i class="bi bi-list-check me-2"></i> Track Hospital Claims
+          </a>
+        {% elif current_user.is_claims_officer %}
+          <a href="{{ url_for('review_queue') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2">
+            <i class="bi bi-inbox me-2"></i> Open Review Queue
+          </a>
+          <a href="{{ url_for('claim_list', status='submitted') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2" style="background-color: var(--secondary-green);">
+            <i class="bi bi-check2-circle me-2"></i> Assign New Claims
+          </a>
+        {% else %}
+          <a href="{{ url_for('admin_reference_data') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2">
+            <i class="bi bi-gear me-2"></i> Manage Reference Data
+          </a>
+          <a href="{{ url_for('reports') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2" style="background-color: var(--secondary-green);">
+            <i class="bi bi-file-earmark-bar-graph me-2"></i> Financial Reports
+          </a>
+          <a href="{{ url_for('claim_list', status='approved') }}" class="btn btn-canopy-primary w-100 justify-content-start py-2" style="background-color: var(--active-nav);">
+            <i class="bi bi-cash me-2"></i> Process Settlements
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Claim Status Distribution -->
+    <div class="canopy-card mb-0">
+      <h6 class="fw-bold mb-3" style="color: var(--primary-forest);">Claim Status Distribution</h6>
+      <div class="d-flex align-items-center justify-content-center py-2">
+        <!-- SVG Donut Chart -->
+        <svg width="150" height="150" viewBox="0 0 42 42">
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#E7F1ED" stroke-width="6"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#0284c7" stroke-width="6" stroke-dasharray="25 75" stroke-dashoffset="25"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#d97706" stroke-width="6" stroke-dasharray="20 80" stroke-dashoffset="0"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#16a34a" stroke-width="6" stroke-dasharray="30 70" stroke-dashoffset="80"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#059669" stroke-width="6" stroke-dasharray="15 85" stroke-dashoffset="50"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#dc2626" stroke-width="6" stroke-dasharray="10 90" stroke-dashoffset="35"/>
+          <g class="chart-text">
+            <text x="50%" y="46%" dominant-baseline="middle" text-anchor="middle" font-size="6" font-weight="bold" fill="#172D2A">
+              {{ metrics.total_claims if metrics.total_claims is defined else metrics.total_hospital_claims if metrics.total_hospital_claims is defined else '20' }}
+            </text>
+            <text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-size="2.6" fill="#81948D">Total</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="d-flex flex-column gap-1 mt-2 small">
+        <div class="d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-circle-fill me-1" style="color: #0284c7; font-size: 0.65rem;"></i> Submitted</span>
+          <span class="fw-semibold">25%</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-circle-fill me-1" style="color: #d97706; font-size: 0.65rem;"></i> In Review</span>
+          <span class="fw-semibold">20%</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-circle-fill me-1" style="color: #16a34a; font-size: 0.65rem;"></i> Approved</span>
+          <span class="fw-semibold">30%</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-circle-fill me-1" style="color: #059669; font-size: 0.65rem;"></i> Paid</span>
+          <span class="fw-semibold">15%</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-circle-fill me-1" style="color: #dc2626; font-size: 0.65rem;"></i> Rejected</span>
+          <span class="fw-semibold">10%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

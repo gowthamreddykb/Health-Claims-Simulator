@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+
+{% block title %}Purchase Health Insurance Policy - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<!-- Page Header matching Canopy Design System -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <a href="{{ url_for('my_policies') }}" class="text-decoration-none text-muted small hover-forest">
+        <i class="bi bi-arrow-left"></i> Back to My Policies
+      </a>
+      <span class="text-muted small">•</span>
+      <span class="badge rounded-pill px-2.5 py-1 text-white" style="background-color: var(--primary-forest); font-size: 0.72rem;">
+        New Policy Enrollment
+      </span>
+    </div>
+    <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Purchase Health Insurance Policy</h3>
+    <p class="text-muted mb-0 small">
+      Select an insurance plan, configure covered family members, and complete your policy issuance.
+    </p>
+  </div>
+  
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('my_policies') }}" class="btn btn-canopy-outline">
+      <i class="bi bi-shield-check me-1"></i> Active Policies
+    </a>
+  </div>
+</div>
+
+<!-- Workflow Step Indicator -->
+<div class="canopy-card p-3 mb-4">
+  <div class="d-flex align-items-center justify-content-between position-relative px-2 px-md-5">
+    <div class="d-flex flex-column align-items-center position-relative" style="z-index: 2;">
+      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mb-1 shadow-xs" style="width: 34px; height: 34px; background-color: var(--primary-forest); font-size: 0.85rem;">
+        1
+      </div>
+      <span class="small fw-bold" style="color: var(--primary-forest); font-size: 0.78rem;">Choose Plan</span>
+    </div>
+    <div class="flex-grow-1 mx-2" style="height: 3px; background-color: var(--border-color); margin-top: -18px;"></div>
+    
+    <div class="d-flex flex-column align-items-center position-relative" style="z-index: 2;">
+      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mb-1 shadow-xs" style="width: 34px; height: 34px; background-color: var(--secondary-green); font-size: 0.85rem;">
+        2
+      </div>
+      <span class="small fw-semibold text-dark" style="font-size: 0.78rem;">Member Details</span>
+    </div>
+    <div class="flex-grow-1 mx-2" style="height: 3px; background-color: var(--border-color); margin-top: -18px;"></div>
+    
+    <div class="d-flex flex-column align-items-center position-relative" style="z-index: 2;">
+      <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold mb-1 border" style="width: 34px; height: 34px; background-color: #ffffff; color: var(--primary-forest); border-color: var(--border-color); font-size: 0.85rem;">
+        3
+      </div>
+      <span class="small text-muted" style="font-size: 0.78rem;">Review & Confirm</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Purchase Form -->
+<form method="POST" action="{{ url_for('buy_policy') }}" id="policy-purchase-form">
+  {{ form.hidden_tag() }}
+
+  <!-- STEP 1: Available Plans Selection (Screen 1 & 2) -->
+  <div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="fw-bold mb-0" style="color: var(--primary-forest);">
+        <i class="bi bi-grid-fill me-1 text-success"></i> 1. Select Available Insurance Plan
+      </h5>
+      <span class="text-muted small">Choose from our accredited database plans</span>
+    </div>
+
+    <div class="row g-3">
+      {% for item in plan_catalog %}
+      {% set plan = item.plan %}
+      {% set p_info = item.premium %}
+      <div class="col-12 col-md-4">
+        <label class="w-100 h-100 cursor-pointer m-0">
+          <input type="radio" name="plan_id" value="{{ plan.plan_id }}" class="d-none plan-radio-input" {% if form.plan_id.data == plan.plan_id %}checked{% endif %}>
+          <div class="canopy-card h-100 p-3.5 plan-option-card transition position-relative {% if form.plan_id.data == plan.plan_id %}selected-plan-border shadow-sm{% endif %}" id="card-plan-{{ plan.plan_id }}">
+            
+            <!-- Selection Checkmark Indicator -->
+            <div class="position-absolute top-0 end-0 m-3 plan-check-badge {% if form.plan_id.data != plan.plan_id %}d-none{% endif %}" id="badge-plan-{{ plan.plan_id }}">
+              <span class="badge rounded-circle p-1 d-flex align-items-center justify-content-center text-white" style="width: 24px; height: 24px; background-color: var(--primary-forest);">
+                <i class="bi bi-check-lg"></i>
+              </span>
+            </div>
+
+            <!-- Tier Tag -->
+            <div class="mb-2">
+              {% if plan.plan_id == 1 %}
+                <span class="badge rounded-pill px-2.5 py-1 text-white" style="background-color: #60726B; font-size: 0.7rem;">Essential Tier</span>
+              {% elif plan.plan_id == 2 %}
+                <span class="badge rounded-pill px-2.5 py-1 text-white" style="background-color: var(--secondary-green); font-size: 0.7rem;">Popular Choice</span>
+              {% elif plan.plan_id == 3 %}
+                <span class="badge rounded-pill px-2.5 py-1 text-white" style="background-color: var(--primary-forest); font-size: 0.7rem;">Comprehensive Care</span>
+              {% else %}
+                <span class="badge rounded-pill px-2.5 py-1 text-white" style="background-color: var(--secondary-green); font-size: 0.7rem;">Special Plan</span>
+              {% endif %}
+            </div>
+
+            <!-- Plan Title & Price -->
+            <h5 class="fw-bold mb-1" style="color: var(--primary-forest);">{{ plan.plan_name }}</h5>
+            <div class="d-flex align-items-baseline gap-1 mb-3">
+              <span class="fs-4 fw-extrabold" style="color: var(--primary-forest);">₹{{ "{:,.0f}".format(p_info.base_premium) }}</span>
+              <span class="text-muted small">/ year (Base)</span>
+            </div>
+
+            <hr class="my-2.5" style="border-color: var(--border-color);">
+
+            <!-- Plan Key Specs from DB -->
+            <div class="space-y-2 text-dark small mb-3">
+              <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                <span class="text-muted">Annual Sum Insured</span>
+                <span class="fw-bold" style="color: var(--primary-forest);">₹{{ "{:,.0f}".format(plan.annual_limit_inr) }}</span>
+              </div>
+              <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                <span class="text-muted">Deductible</span>
+                <span class="fw-semibold">₹{{ "{:,.0f}".format(plan.deductible_inr) }}</span>
+              </div>
+              <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                <span class="text-muted">Co-pay</span>
+                <span class="fw-semibold">{{ "{:.0f}".format(plan.copay_percent) }}%</span>
+              </div>
+              <div class="d-flex justify-content-between py-1">
+                <span class="text-muted">Treatments</span>
+                <span class="fw-semibold text-capitalize">{{ plan.covered_treatment_types.replace('|', ', ') }}</span>
+              </div>
+            </div>
+
+            <!-- Benefit Badges & View Details Action -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-1.5 mt-auto pt-3 border-top">
+              <div class="d-flex flex-wrap gap-1">
+                <span class="badge text-dark rounded-pill px-2 py-1" style="background-color: var(--pale-mint); font-size: 0.72rem;">
+                  <i class="bi bi-shield-check text-success me-1"></i> Cashless
+                </span>
+                <span class="badge text-dark rounded-pill px-2 py-1" style="background-color: var(--pale-mint); font-size: 0.72rem;">
+                  <i class="bi bi-lightning-charge text-success me-1"></i> Fast
+                </span>
+              </div>
+              <button type="button" class="btn btn-sm btn-link text-decoration-none fw-semibold p-0" style="color: var(--secondary-green); font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#planDetailsModal{{ plan.plan_id }}" onclick="event.stopPropagation();">
+                <i class="bi bi-eye me-1"></i> View Details
+              </button>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Plan Details Modal -->
+      <div class="modal fade" id="planDetailsModal{{ plan.plan_id }}" tabindex="-1" aria-labelledby="planDetailsModalLabel{{ plan.plan_id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content shadow-xl rounded-4 border-0 overflow-hidden">
+            <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+              <div>
+                <span class="badge rounded-pill text-white px-2.5 py-1 mb-1" style="background-color: var(--secondary-green); font-size: 0.7rem;">
+                  Plan ID: #{{ plan.plan_id }}
+                </span>
+                <h5 class="modal-title fw-bold text-white mb-0" id="planDetailsModalLabel{{ plan.plan_id }}">
+                  {{ plan.plan_name }}
+                </h5>
+              </div>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+              <div class="canopy-card p-3 mb-3 bg-white">
+                <h6 class="fw-bold mb-3" style="color: var(--primary-forest);">Financial Coverage Breakdown</h6>
+                <div class="row g-3">
+                  <div class="col-6">
+                    <div class="text-muted small text-uppercase" style="font-size: 0.68rem;">Annual Sum Insured</div>
+                    <div class="fw-bold fs-5" style="color: var(--primary-forest);">₹{{ "{:,.0f}".format(plan.annual_limit_inr) }}</div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-muted small text-uppercase" style="font-size: 0.68rem;">Base Premium / yr</div>
+                    <div class="fw-bold fs-5 text-dark">₹{{ "{:,.0f}".format(p_info.base_premium) }}</div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-muted small text-uppercase" style="font-size: 0.68rem;">Deductible per Year</div>
+                    <div class="fw-bold text-dark">₹{{ "{:,.0f}".format(plan.deductible_inr) }}</div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-muted small text-uppercase" style="font-size: 0.68rem;">Co-pay Percentage</div>
+                    <div class="fw-bold text-dark">{{ "{:.0f}".format(plan.copay_percent) }}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="canopy-card p-3 mb-3 bg-white">
+                <h6 class="fw-bold mb-2" style="color: var(--primary-forest);">Covered Treatment Types</h6>
+                <p class="text-dark small mb-0 text-capitalize">
+                  <i class="bi bi-bandaid me-1 text-success"></i> {{ plan.covered_treatment_types.replace('|', ', ') }}
+                </p>
+              </div>
+
+              <div class="canopy-card p-3 bg-white">
+                <h6 class="fw-bold mb-2" style="color: var(--primary-forest);">Policyholder Benefits</h6>
+                <ul class="list-unstyled mb-0 small text-muted space-y-1.5">
+                  <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Immediate policy activation with cashless TPA support</li>
+                  <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Coverage extended to Spouse, Children, and Senior Parents</li>
+                  <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> 100% tax deduction eligible under Section 80D</li>
+                </ul>
+              </div>
+            </div>
+            <div class="modal-footer bg-white border-top p-3 justify-content-between">
+              <span class="text-muted small">Database Plan Record #{{ plan.plan_id }}</span>
+              <button type="button" class="btn btn-canopy-primary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- STEP 2: Required Details & Family Coverage (Left Column) -->
+    <div class="col-12 col-lg-7">
+      <div class="canopy-card p-4 mb-4">
+        <h5 class="fw-bold mb-3" style="color: var(--primary-forest);">
+          <i class="bi bi-person-lines-fill me-1 text-success"></i> 2. Insured Members & Policy Details
+        </h5>
+
+        <!-- Primary Member -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-bold small text-dark">Policy Start Date *</label>
+            {{ form.start_date(class="form-control", id="policy-start-date") }}
+            <div class="form-text text-muted small">Standard coverage term is 1 full year from start date.</div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-bold small text-dark">Primary Insured (Self) *</label>
+            {{ form.primary_member_name(class="form-control", placeholder="Full Name") }}
+            <div class="form-text text-muted small">Auto-filled for policyholder {{ current_user.display_name }}.</div>
+          </div>
+        </div>
+
+        <!-- Nominee Details -->
+        <div class="p-3 rounded-3 mb-4" style="background-color: #F9FCFA; border: 1px solid var(--border-color);">
+          <div class="fw-bold small text-dark mb-2">
+            <i class="bi bi-heart-pulse-fill text-danger me-1"></i> Nominee for Policy
+          </div>
+          <div class="row g-3">
+            <div class="col-12 col-md-7">
+              <label class="form-label small text-muted">Nominee Full Name *</label>
+              {{ form.nominee_name(class="form-control form-control-sm", placeholder="e.g. Spouse / Parent / Child name") }}
+            </div>
+            <div class="col-12 col-md-5">
+              <label class="form-label small text-muted">Relationship *</label>
+              {{ form.nominee_relationship(class="form-select form-select-sm") }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Dependent Add-ons -->
+        <h6 class="fw-bold mb-2 small text-dark">
+          <i class="bi bi-people-fill text-success me-1"></i> Add Dependent Family Members (Optional)
+        </h6>
+        <p class="text-muted small mb-3">
+          Cover your family under this policy. Premiums update automatically based on actuarial business rules.
+        </p>
+
+        <!-- Spouse Add-on -->
+        <div class="p-3 rounded-3 mb-2.5 transition" style="background-color: #ffffff; border: 1px solid var(--border-color);">
+          <div class="form-check form-switch mb-2">
+            {{ form.include_spouse(class="form-check-input dependent-checkbox", id="include-spouse-check", data_cost="2500", data_label="Spouse Cover") }}
+            <label class="form-check-label fw-bold small text-dark" for="include-spouse-check">
+              Add Spouse (+₹2,500/year)
+            </label>
+          </div>
+          <div class="dependent-input-group {% if not form.include_spouse.data %}d-none{% endif %}" id="spouse-name-wrapper">
+            {{ form.spouse_name(class="form-control form-control-sm", placeholder="Spouse's Full Name") }}
+          </div>
+        </div>
+
+        <!-- Child 1 Add-on -->
+        <div class="p-3 rounded-3 mb-2.5 transition" style="background-color: #ffffff; border: 1px solid var(--border-color);">
+          <div class="form-check form-switch mb-2">
+            {{ form.include_child1(class="form-check-input dependent-checkbox", id="include-child1-check", data_cost="1500", data_label="Child 1 Cover") }}
+            <label class="form-check-label fw-bold small text-dark" for="include-child1-check">
+              Add Child 1 (+₹1,500/year)
+            </label>
+          </div>
+          <div class="dependent-input-group {% if not form.include_child1.data %}d-none{% endif %}" id="child1-name-wrapper">
+            {{ form.child1_name(class="form-control form-control-sm", placeholder="Child 1 Full Name") }}
+          </div>
+        </div>
+
+        <!-- Child 2 Add-on -->
+        <div class="p-3 rounded-3 mb-2.5 transition" style="background-color: #ffffff; border: 1px solid var(--border-color);">
+          <div class="form-check form-switch mb-2">
+            {{ form.include_child2(class="form-check-input dependent-checkbox", id="include-child2-check", data_cost="1500", data_label="Child 2 Cover") }}
+            <label class="form-check-label fw-bold small text-dark" for="include-child2-check">
+              Add Child 2 (+₹1,500/year)
+            </label>
+          </div>
+          <div class="dependent-input-group {% if not form.include_child2.data %}d-none{% endif %}" id="child2-name-wrapper">
+            {{ form.child2_name(class="form-control form-control-sm", placeholder="Child 2 Full Name") }}
+          </div>
+        </div>
+
+        <!-- Senior Parent Add-on -->
+        <div class="p-3 rounded-3 mb-3 transition" style="background-color: #ffffff; border: 1px solid var(--border-color);">
+          <div class="form-check form-switch mb-2">
+            {{ form.include_parent(class="form-check-input dependent-checkbox", id="include-parent-check", data_cost="3500", data_label="Senior Parent Cover") }}
+            <label class="form-check-label fw-bold small text-dark" for="include-parent-check">
+              Add Senior Parent (+₹3,500/year)
+            </label>
+          </div>
+          <div class="dependent-input-group {% if not form.include_parent.data %}d-none{% endif %}" id="parent-name-wrapper">
+            {{ form.parent_name(class="form-control form-control-sm", placeholder="Parent's Full Name") }}
+          </div>
+        </div>
+
+        <!-- Payment Method Selection -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small text-dark">
+            <i class="bi bi-credit-card-2-front-fill text-success me-1"></i> Payment Workflow *
+          </label>
+          {{ form.payment_method(class="form-select", id="payment-method-select") }}
+          <div class="form-text text-muted small mt-1">
+            <strong>Security & Privacy:</strong> In this educational simulator, payments are safely processed via instant test confirmation. No actual payment card numbers or banking secrets are ever stored.
+          </div>
+        </div>
+
+        <!-- Health Terms Declaration -->
+        <div class="form-check mt-3 pt-2 border-top">
+          {{ form.agree_terms(class="form-check-input", id="agree-terms-check") }}
+          <label class="form-check-label small text-dark" for="agree-terms-check">
+            I declare that all personal and health disclosures are accurate and agree to the 
+            <strong>Canopy Health Claims Terms & Coverage Rules</strong>.
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Review Premium & Coverage Summary (Right Column) -->
+    <div class="col-12 col-lg-5">
+      <div class="canopy-card p-4 sticky-top" style="top: 80px;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="fw-bold mb-0" style="color: var(--primary-forest);">
+            <i class="bi bi-receipt-cutoff me-1 text-success"></i> 3. Premium Summary
+          </h5>
+          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small">
+            Live Calculation
+          </span>
+        </div>
+
+        <!-- Selected Plan Snapshot -->
+        <div class="p-3 rounded-3 mb-3" style="background-color: var(--pale-mint); border: 1px solid rgba(38, 122, 106, 0.2);">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-muted small">Plan Selected</span>
+            <span class="fw-bold" style="color: var(--primary-forest);" id="summary-plan-name">{{ selected_plan.plan_name }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-muted small">Annual Coverage</span>
+            <span class="fw-semibold small" id="summary-sum-insured">₹{{ "{:,.0f}".format(selected_plan.annual_limit_inr) }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-muted small">Deductible / Co-pay</span>
+            <span class="fw-semibold small" id="summary-deductible-copay">₹{{ "{:,.0f}".format(selected_plan.deductible_inr) }} / {{ "{:.0f}".format(selected_plan.copay_percent) }}%</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Covered Members</span>
+            <span class="fw-semibold small" id="summary-member-count">{{ active_breakdown.total_members }} Member(s)</span>
+          </div>
+        </div>
+
+        <!-- Itemized Premium Breakdown -->
+        <div class="space-y-2 mb-3 text-dark small">
+          <div class="d-flex justify-content-between py-1 border-bottom border-light">
+            <span class="text-muted">Base Plan Premium</span>
+            <span class="fw-semibold" id="summary-base-premium">₹{{ "{:,.2f}".format(active_breakdown.base_premium) }}</span>
+          </div>
+
+          <div id="dependent-line-items">
+            {% for dep in active_breakdown.dependent_breakdown %}
+            <div class="d-flex justify-content-between py-1 border-bottom border-light">
+              <span class="text-muted">+ {{ dep.label }}</span>
+              <span class="fw-semibold">₹{{ "{:,.2f}".format(dep.amount) }}</span>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex justify-content-between py-1 border-bottom border-light">
+            <span class="text-muted">Subtotal (Net Premium)</span>
+            <span class="fw-semibold" id="summary-net-premium">₹{{ "{:,.2f}".format(active_breakdown.net_premium) }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between py-1 border-bottom border-light">
+            <span class="text-muted">Statutory GST (18.00%)</span>
+            <span class="fw-semibold" id="summary-gst-amount">₹{{ "{:,.2f}".format(active_breakdown.gst_amount) }}</span>
+          </div>
+
+          <!-- Total Premium -->
+          <div class="d-flex justify-content-between align-items-baseline pt-2">
+            <div>
+              <span class="fw-bold fs-6" style="color: var(--primary-forest);">Total Annual Premium</span>
+              <div class="text-muted text-[11px]" style="font-size: 0.72rem;">Inclusive of all applicable taxes</div>
+            </div>
+            <span class="fs-4 fw-extrabold" style="color: var(--primary-forest);" id="summary-total-premium">
+              ₹{{ "{:,.2f}".format(active_breakdown.total_annual_premium) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Confirm Button -->
+        <button type="submit" class="btn btn-canopy-primary w-100 justify-content-center py-2.5 fw-bold shadow-sm mb-2">
+          <i class="bi bi-shield-check me-1.5"></i> Confirm & Issue Policy
+        </button>
+
+        <a href="{{ url_for('my_policies') }}" class="btn btn-canopy-outline w-100 justify-content-center py-2 small">
+          Cancel & Return
+        </a>
+
+        <!-- Trust & Compliance Note -->
+        <div class="d-flex align-items-center gap-2 mt-3 pt-3 border-top text-muted" style="font-size: 0.72rem;">
+          <i class="bi bi-lock-fill text-success fs-6"></i>
+          <span>Instant issuance. Policy documents and membership ID cards immediately accessible upon confirmation.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Interactive Live Recalculation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const planRadios = document.querySelectorAll('.plan-radio-input');
+  const depCheckboxes = document.querySelectorAll('.dependent-checkbox');
+  const spouseCheck = document.getElementById('include-spouse-check');
+  const child1Check = document.getElementById('include-child1-check');
+  const child2Check = document.getElementById('include-child2-check');
+  const parentCheck = document.getElementById('include-parent-check');
+
+  const spouseWrapper = document.getElementById('spouse-name-wrapper');
+  const child1Wrapper = document.getElementById('child1-name-wrapper');
+  const child2Wrapper = document.getElementById('child2-name-wrapper');
+  const parentWrapper = document.getElementById('parent-name-wrapper');
+
+  // Toggle input fields on checkbox change
+  if (spouseCheck && spouseWrapper) {
+    spouseCheck.addEventListener('change', () => {
+      spouseWrapper.classList.toggle('d-none', !spouseCheck.checked);
+      recalculate();
+    });
+  }
+  if (child1Check && child1Wrapper) {
+    child1Check.addEventListener('change', () => {
+      child1Wrapper.classList.toggle('d-none', !child1Check.checked);
+      recalculate();
+    });
+  }
+  if (child2Check && child2Wrapper) {
+    child2Check.addEventListener('change', () => {
+      child2Wrapper.classList.toggle('d-none', !child2Check.checked);
+      recalculate();
+    });
+  }
+  if (parentCheck && parentWrapper) {
+    parentCheck.addEventListener('change', () => {
+      parentWrapper.classList.toggle('d-none', !parentCheck.checked);
+      recalculate();
+    });
+  }
+
+  // Handle Plan selection changes
+  planRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.plan-option-card').forEach(card => {
+        card.classList.remove('selected-plan-border', 'shadow-sm');
+      });
+      document.querySelectorAll('.plan-check-badge').forEach(badge => {
+        badge.classList.add('d-none');
+      });
+
+      const card = document.getElementById('card-plan-' + radio.value);
+      const badge = document.getElementById('badge-plan-' + radio.value);
+      if (card) card.classList.add('selected-plan-border', 'shadow-sm');
+      if (badge) badge.classList.remove('d-none');
+
+      recalculate();
+    });
+  });
+
+  function recalculate() {
+    const selectedRadio = document.querySelector('.plan-radio-input:checked');
+    if (!selectedRadio) return;
+    const planId = selectedRadio.value;
+
+    const rels = ['self'];
+    if (spouseCheck && spouseCheck.checked) rels.push('spouse');
+    if (child1Check && child1Check.checked) rels.push('child');
+    if (child2Check && child2Check.checked) rels.push('child');
+    if (parentCheck && parentCheck.checked) rels.push('parent');
+
+    const params = new URLSearchParams();
+    rels.forEach(r => params.append('rel', r));
+
+    fetch('/api/plan-premium/' + planId + '?' + params.toString())
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('summary-plan-name').textContent = data.plan_name;
+        document.getElementById('summary-sum-insured').textContent = '₹' + Number(data.annual_limit_inr).toLocaleString('en-IN');
+        document.getElementById('summary-deductible-copay').textContent = '₹' + Number(data.deductible_inr).toLocaleString('en-IN') + ' / ' + data.copay_percent + '%';
+        document.getElementById('summary-member-count').textContent = data.total_members + ' Member(s)';
+
+        document.getElementById('summary-base-premium').textContent = '₹' + Number(data.base_premium).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        const depContainer = document.getElementById('dependent-line-items');
+        depContainer.innerHTML = '';
+        if (data.dependent_breakdown && data.dependent_breakdown.length > 0) {
+          data.dependent_breakdown.forEach(dep => {
+            const row = document.createElement('div');
+            row.className = 'd-flex justify-content-between py-1 border-bottom border-light';
+            row.innerHTML = `<span class="text-muted">+ ${dep.label}</span><span class="fw-semibold">₹${Number(dep.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+            depContainer.appendChild(row);
+          });
+        }
+
+        document.getElementById('summary-net-premium').textContent = '₹' + Number(data.net_premium).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('summary-gst-amount').textContent = '₹' + Number(data.gst_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('summary-total-premium').textContent = '₹' + Number(data.total_annual_premium).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      })
+      .catch(err => console.error('Premium calculation error:', err));
+  }
+});
+</script>
+
+<style>
+.selected-plan-border {
+  border-color: var(--primary-forest) !important;
+  background-color: #F6FAF8 !important;
+  box-shadow: 0 4px 12px rgba(16, 72, 63, 0.08) !important;
+}
+.plan-option-card:hover {
+  border-color: var(--secondary-green);
+}
+.hover-forest:hover {
+  color: var(--primary-forest) !important;
+}
+</style>
+{% endblock %}

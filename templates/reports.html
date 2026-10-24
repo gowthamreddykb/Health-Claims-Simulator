@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - Health Claims Simulator{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Reports & Analytics</h3>
+    <p class="text-muted mb-0 small">Overview of claims, financial performance, and simulated payout aggregates.</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <select class="form-select form-select-sm rounded-pill" id="reportTimeframeSelect" style="width: auto;">
+      <option value="Last 6 Months" selected>Last 6 Months</option>
+      <option value="Year to Date">Year to Date</option>
+      <option value="All Time">All Time</option>
+    </select>
+    <button class="btn btn-outline-success btn-sm rounded-pill px-3" id="btnPreviewReport" onclick="previewReportPdf()">
+      <i class="bi bi-eye me-1"></i> Preview PDF
+    </button>
+    <button class="btn btn-canopy-primary btn-sm rounded-pill px-3" id="btnGenerateReport" onclick="generateReportPdf()">
+      <i class="bi bi-file-earmark-pdf me-1"></i> <span id="btnReportText">Generate Report (PDF)</span>
+    </button>
+  </div>
+</div>
+
+<!-- Report PDF Preview Modal (identical size to CityCare Hospital modal: max-width 896px, 90vh) -->
+<div class="modal fade" id="reportPdfPreviewModal" tabindex="-1" aria-labelledby="reportPdfPreviewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 896px; width: 95%; margin: 1.5rem auto;">
+    <div class="modal-content shadow-2xl" style="height: 90vh; border-radius: 1rem; overflow: hidden; display: flex; flex-direction: column; border: 1px solid #DDE7E2;">
+      <div class="modal-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between" style="border-color: #DDE7E2 !important; flex-shrink: 0;">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-file-earmark-pdf fs-5" style="color: var(--primary-forest, #10483F);"></i>
+          <div>
+            <h6 class="modal-title fw-bold mb-0" id="reportPdfPreviewLabel" style="color: var(--primary-forest, #10483F);">Report PDF Preview</h6>
+            <div class="small text-muted" id="previewSubtitle">Canopy Health Insurance Official Report</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-canopy-primary btn-sm px-3" onclick="generateReportPdf()">
+            <i class="bi bi-download me-1"></i> Download
+          </button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body p-2" style="flex: 1 1 auto; background: #f1f5f9;">
+        <iframe id="reportPdfIframe" style="width: 100%; height: 100%; border: 1px solid #DDE7E2; border-radius: 8px; background: white;" title="Report PDF Preview"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pdfDownloadAlert" class="alert alert-success alert-dismissible fade d-none mb-3 shadow-sm" role="alert">
+  <i class="bi bi-check-circle-fill me-2"></i> <strong>Report Ready!</strong> PDF report generated and downloaded to your device.
+  <button type="button" class="btn-close" onclick="document.getElementById('pdfDownloadAlert').classList.add('d-none')"></button>
+</div>
+
+<!-- 4 Top Metric Cards (Screen 10) -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="metric-stat-card shadow-sm">
+      <div class="metric-icon-box" style="background: #e7f1ed; color: #10483F;">
+        <i class="bi bi-folder-fill"></i>
+      </div>
+      <div>
+        <div class="metric-stat-num">{{ total_claims }}</div>
+        <div class="metric-stat-label">Total Claims</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="metric-stat-card shadow-sm">
+      <div class="metric-icon-box" style="background: #dcfce7; color: #16a34a;">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <div>
+        <div class="metric-stat-num">{{ approved_count }}</div>
+        <div class="metric-stat-label">Approved</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="metric-stat-card shadow-sm">
+      <div class="metric-icon-box" style="background: #fee2e2; color: #dc2626;">
+        <i class="bi bi-x-circle-fill"></i>
+      </div>
+      <div>
+        <div class="metric-stat-num">{{ rejected_count }}</div>
+        <div class="metric-stat-label">Rejected</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="metric-stat-card shadow-sm">
+      <div class="metric-icon-box" style="background: #d1fae5; color: #059669;">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div>
+        <div class="metric-stat-num">{{ paid_count }}</div>
+        <div class="metric-stat-label">Paid Settlements</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts & Financial Summary Row -->
+<div class="row g-4 mb-4">
+  <!-- Claims by Status Chart Panel -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="canopy-card h-100">
+      <h6 class="fw-bold mb-3" style="color: var(--primary-forest);">Claims by Status</h6>
+      <div class="d-flex align-items-center justify-content-center py-2">
+        <svg width="150" height="150" viewBox="0 0 42 42">
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#E7F1ED" stroke-width="6"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#0284c7" stroke-width="6" stroke-dasharray="25 75" stroke-dashoffset="25"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#d97706" stroke-width="6" stroke-dasharray="20 80" stroke-dashoffset="0"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#16a34a" stroke-width="6" stroke-dasharray="30 70" stroke-dashoffset="80"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#059669" stroke-width="6" stroke-dasharray="15 85" stroke-dashoffset="50"/>
+          <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#dc2626" stroke-width="6" stroke-dasharray="10 90" stroke-dashoffset="35"/>
+          <g class="chart-text">
+            <text x="50%" y="46%" dominant-baseline="middle" text-anchor="middle" font-size="6" font-weight="bold" fill="#172D2A">{{ total_claims }}</text>
+            <text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-size="2.6" fill="#81948D">Claims</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="d-flex flex-column gap-2 mt-3 small">
+        {% for st, cnt in status_groups.items() %}
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="text-capitalize">{{ st.replace('_', ' ') }}</span>
+          <span class="fw-bold">{{ cnt }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Claims by Type Bar Panel -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="canopy-card h-100">
+      <h6 class="fw-bold mb-3" style="color: var(--primary-forest);">Claims by Type</h6>
+      <div class="py-3">
+        {% set cashless_cnt = type_groups.get('cashless', 0) %}
+        {% set reimb_cnt = type_groups.get('reimbursement', 0) %}
+        {% set max_cnt = [cashless_cnt, reimb_cnt, 1]|max %}
+        
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-semibold mb-1">
+            <span>Cashless</span>
+            <span>{{ cashless_cnt }} claims</span>
+          </div>
+          <div class="progress" style="height: 12px; border-radius: 6px;">
+            <div class="progress-bar" style="width: {{ (cashless_cnt / max_cnt * 100)|round }}%; background-color: var(--primary-forest);"></div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small fw-semibold mb-1">
+            <span>Reimbursement</span>
+            <span>{{ reimb_cnt }} claims</span>
+          </div>
+          <div class="progress" style="height: 12px; border-radius: 6px;">
+            <div class="progress-bar" style="width: {{ (reimb_cnt / max_cnt * 100)|round }}%; background-color: var(--secondary-green);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3 bg-light rounded-3 border small text-muted mt-2">
+        Cashless claims require treatment at authorized network partner facilities with real-time pre-authorization.
+      </div>
+    </div>
+  </div>
+
+  <!-- Financial Settlement Summary -->
+  <div class="col-12 col-lg-4">
+    <div class="canopy-card h-100">
+      <h6 class="fw-bold mb-3" style="color: var(--primary-forest);">Financial Metrics</h6>
+      <div class="d-flex flex-column gap-3">
+        <div class="p-3 bg-light rounded-3 border">
+          <div class="text-muted small">Total Requested Volume</div>
+          <div class="fs-4 fw-bold" style="color: var(--primary-forest);">{{ format_inr(total_requested_inr) }}</div>
+        </div>
+        <div class="p-3 bg-success-subtle rounded-3 border border-success-subtle">
+          <div class="text-success small fw-semibold">Total Paid Settlements</div>
+          <div class="fs-4 fw-bold text-success">{{ format_inr(total_settled_inr) }}</div>
+        </div>
+        <div class="p-3 bg-light rounded-3 border">
+          <div class="text-muted small">Average Settlement Time</div>
+          <div class="fs-5 fw-bold text-dark">1.4 Business Days</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function buildReportPdfDocument(timeframe) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const primaryColor = [16, 72, 63]; // #10483F
+    const secondaryColor = [38, 122, 106]; // #267A6A
+
+    // Header banner
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 28, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CANOPY HEALTH INSURANCE SIMULATOR', 14, 12);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Official Analytics & Performance Executive Report — ' + timeframe, 14, 20);
+
+    // Metadata details
+    doc.setTextColor(96, 114, 107);
+    doc.setFontSize(8);
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    doc.text('Generated on: ' + dateStr, 145, 20);
+
+    // Section 1: Executive KPI Summary
+    doc.setTextColor(16, 72, 63);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('1. Executive KPI Summary', 14, 38);
+
+    const kpiData = [
+      ['Total Claims Processed', '{{ total_claims }}'],
+      ['Approved Claims', '{{ approved_count }}'],
+      ['Rejected Claims', '{{ rejected_count }}'],
+      ['Settled & Paid Claims', '{{ paid_count }}'],
+      ['Total Claim Volume Requested', '{{ format_inr(total_requested_inr) }}'],
+      ['Total Simulated Settlements Paid', '{{ format_inr(total_settled_inr) }}']
+    ];
+
+    if (doc.autoTable) {
+      doc.autoTable({
+        startY: 42,
+        head: [['Performance Metric', 'Reported Value']],
+        body: kpiData,
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 8.5, cellPadding: 2.5 }
+      });
+    }
+
+    return doc;
+  } catch (e) {
+    console.error('PDF Generation error:', e);
+    return null;
+  }
+}
+
+function previewReportPdf() {
+  const timeframe = document.getElementById('reportTimeframeSelect')?.value || 'Last 6 Months';
+  try {
+    const doc = buildReportPdfDocument(timeframe);
+    if (!doc) return;
+    const blobUrl = doc.output('bloburl');
+    const iframe = document.getElementById('reportPdfIframe');
+    if (iframe) iframe.src = blobUrl;
+    const modalEl = document.getElementById('reportPdfPreviewModal');
+    if (modalEl && window.bootstrap) {
+      const modal = new window.bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  } catch (err) {
+    console.error('Error opening preview:', err);
+  }
+}
+
+function generateReportPdf() {
+  const timeframe = document.getElementById('reportTimeframeSelect')?.value || 'Last 6 Months';
+  try {
+    const doc = buildReportPdfDocument(timeframe);
+    if (!doc) return;
+    doc.save('Canopy_Health_Insurance_Report_' + timeframe.replace(/\s+/g, '_') + '.pdf');
+    const alertEl = document.getElementById('pdfDownloadAlert');
+    if (alertEl) alertEl.classList.remove('d-none');
+  } catch (err) {
+    console.error('Error downloading PDF:', err);
+  }
+}
+</script>
+{% endblock %}

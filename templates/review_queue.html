@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Review Queue - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Review Queue</h3>
+    <p class="text-muted mb-0 small">Claims awaiting your assessment and decision.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('review_queue') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+      <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+    </a>
+  </div>
+</div>
+
+<!-- Review Queue Filter Cards (Screen 8) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <a href="{{ url_for('review_queue', filter='assigned', q=search_q) }}" class="text-decoration-none">
+      <div class="metric-stat-card shadow-sm {% if filter_type == 'assigned' %}border-2 border-success bg-light{% endif %}">
+        <div class="metric-icon-box" style="background: #e7f1ed; color: #10483F;">
+          <i class="bi bi-person-check"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ counts.assigned }}</div>
+          <div class="metric-stat-label">Assigned to Me</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <a href="{{ url_for('review_queue', filter='unassigned', q=search_q) }}" class="text-decoration-none">
+      <div class="metric-stat-card shadow-sm {% if filter_type == 'unassigned' %}border-2 border-primary bg-light{% endif %}">
+        <div class="metric-icon-box" style="background: #e0f2fe; color: #0284c7;">
+          <i class="bi bi-inbox"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ counts.unassigned }}</div>
+          <div class="metric-stat-label">Awaiting Assignment</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <a href="{{ url_for('review_queue', filter='more_info', q=search_q) }}" class="text-decoration-none">
+      <div class="metric-stat-card shadow-sm {% if filter_type == 'more_info' %}border-2 border-warning bg-light{% endif %}">
+        <div class="metric-icon-box" style="background: #ffedd5; color: #ea580c;">
+          <i class="bi bi-question-circle"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ counts.more_info }}</div>
+          <div class="metric-stat-label">More Information</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <a href="{{ url_for('review_queue', filter='awaiting_decision', q=search_q) }}" class="text-decoration-none">
+      <div class="metric-stat-card shadow-sm {% if filter_type == 'awaiting_decision' %}border-2 border-info bg-light{% endif %}">
+        <div class="metric-icon-box" style="background: #fef3c7; color: #d97706;">
+          <i class="bi bi-clock"></i>
+        </div>
+        <div>
+          <div class="metric-stat-num">{{ counts.awaiting_decision }}</div>
+          <div class="metric-stat-label">Awaiting Decision</div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- Review Queue Table (Screen 8) -->
+<div class="canopy-card mb-4">
+  <div class="p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <form method="GET" action="{{ url_for('review_queue') }}" class="d-flex gap-2">
+      <input type="hidden" name="filter" value="{{ filter_type }}">
+      <div class="input-group input-group-sm" style="min-width: 280px;">
+        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" value="{{ search_q }}" class="form-control border-start-0" placeholder="Filter by Member or Claim ID...">
+        <button type="submit" class="btn btn-canopy-primary">Search</button>
+      </div>
+    </form>
+    <div class="text-muted small">
+      Showing <strong>{{ claims|length }}</strong> items
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="canopy-table">
+      <thead>
+        <tr>
+          <th>Claim ID</th>
+          <th>Member</th>
+          <th>Hospital</th>
+          <th>Assigned Officer</th>
+          <th>Type</th>
+          <th class="text-end">Amount</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in claims %}
+        <tr>
+          <td class="fw-bold">CLM-{{ "%06d"|format(c.claim_id) }}</td>
+          <td>{{ c.member.display_name }}</td>
+          <td class="text-truncate" style="max-width: 150px;">{{ c.hospital.name }}</td>
+          <td>
+            {% if c.officer %}
+              <span class="badge bg-light text-dark border py-1 px-2">
+                <i class="bi bi-arrow-repeat text-success me-1"></i>{{ c.officer.display_name }}
+              </span>
+            {% else %}
+              <span class="text-muted small fst-italic">Unassigned</span>
+            {% endif %}
+          </td>
+          <td class="text-capitalize">{{ c.claim_type }}</td>
+          <td class="text-end fw-bold" style="color: var(--primary-forest);">{{ format_inr(c.requested_amount_inr) }}</td>
+          <td>
+            <span class="status-pill status-{{ c.status }}">
+              {{ c.status.replace('_', ' ') }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm btn-canopy-primary py-1 px-3" style="font-size: 0.8rem;">
+              <i class="bi bi-eye-fill me-1"></i> Review
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-5 text-muted">
+            <i class="bi bi-check2-circle fs-2 text-success d-block mb-2"></i>
+            All clear! No claims waiting in this queue.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

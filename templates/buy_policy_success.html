@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Policy Issued - Confirmation Receipt{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+  <div class="col-12 col-md-10 col-lg-8">
+    
+    <!-- Success Banner Card -->
+    <div class="canopy-card p-4 p-md-5 text-center mb-4 position-relative overflow-hidden">
+      <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 text-white shadow-sm" style="width: 72px; height: 72px; background-color: var(--primary-forest);">
+        <i class="bi bi-shield-check fs-1"></i>
+      </div>
+
+      <div class="badge rounded-pill px-3 py-1 text-white mb-2" style="background-color: var(--secondary-green); font-size: 0.78rem;">
+        Policy Issued & Confirmed
+      </div>
+
+      <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">
+        Congratulations, {{ current_user.display_name }}!
+      </h3>
+      <p class="text-muted small mb-3">
+        Your health insurance policy has been successfully issued and recorded in the database.
+      </p>
+
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill" style="background-color: var(--pale-mint); border: 1px solid var(--border-color);">
+        <span class="text-muted small">Policy Number:</span>
+        <span class="fw-bold font-monospace" style="color: var(--primary-forest); font-size: 1.05rem;">
+          HP{{ "%04d"|format(policy.policy_id) }}456
+        </span>
+      </div>
+    </div>
+
+    <!-- Official Policy & Receipt Breakdown Card -->
+    <div class="canopy-card p-4 mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+        <div>
+          <h5 class="fw-bold mb-0" style="color: var(--primary-forest);">Policy Certificate & Receipt</h5>
+          <span class="text-muted small">Simulated Educational Health Insurance Policy</span>
+        </div>
+        <span class="badge {% if policy.status == 'active' %}bg-success{% else %}bg-warning text-dark{% endif %} rounded-pill px-3 py-1.5 text-uppercase">
+          {{ policy.status }}
+        </span>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6">
+          <div class="p-3 rounded-3" style="background-color: #F9FCFA; border: 1px solid var(--border-color);">
+            <div class="text-muted small mb-0.5">Insurance Plan</div>
+            <div class="fw-bold fs-6" style="color: var(--primary-forest);">{{ policy.plan.plan_name }}</div>
+            <div class="text-muted small mt-1">Covered: {{ policy.plan.covered_treatment_types.replace('|', ', ') }}</div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6">
+          <div class="p-3 rounded-3" style="background-color: #F9FCFA; border: 1px solid var(--border-color);">
+            <div class="text-muted small mb-0.5">Annual Coverage Limit</div>
+            <div class="fw-bold fs-6" style="color: var(--primary-forest);">₹{{ "{:,.0f}".format(policy.plan.annual_limit_inr) }}</div>
+            <div class="text-muted small mt-1">Deductible: ₹{{ "{:,.0f}".format(policy.plan.deductible_inr) }} | Co-pay: {{ "{:.0f}".format(policy.plan.copay_percent) }}%</div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6">
+          <div class="p-3 rounded-3" style="background-color: #F9FCFA; border: 1px solid var(--border-color);">
+            <div class="text-muted small mb-0.5">Policy Validity Term</div>
+            <div class="fw-semibold text-dark">
+              {{ policy.start_date.strftime('%d %b %Y') }} — {{ policy.end_date.strftime('%d %b %Y') }}
+            </div>
+            <div class="text-muted small mt-1">1 Year Coverage Period</div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6">
+          <div class="p-3 rounded-3" style="background-color: #F9FCFA; border: 1px solid var(--border-color);">
+            <div class="text-muted small mb-0.5">Payment Status</div>
+            <div class="fw-semibold text-success">
+              <i class="bi bi-check-circle-fill me-1"></i> Confirmed (Simulated Test Mode)
+            </div>
+            <div class="text-muted small mt-1">Instant electronic validation</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Covered Members Section -->
+      <h6 class="fw-bold mb-2.5" style="color: var(--primary-forest);">
+        <i class="bi bi-people-fill me-1 text-success"></i> Covered Members ({{ policy.members|length }})
+      </h6>
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr class="small text-muted">
+              <th>Member Name</th>
+              <th>Relationship</th>
+              <th>Eligibility</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for member in policy.members %}
+            <tr>
+              <td class="fw-semibold text-dark">{{ member.display_name }}</td>
+              <td>
+                <span class="badge rounded-pill px-2 py-0.5 text-capitalize {% if member.relationship_type == 'self' %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}" style="font-size: 0.72rem;">
+                  {{ member.relationship_type }}
+                </span>
+              </td>
+              <td class="small text-muted">100% In-network & Out-of-network</td>
+              <td><span class="text-success small fw-semibold"><i class="bi bi-check2"></i> Covered</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Premium Payment Receipt -->
+      <h6 class="fw-bold mb-2.5" style="color: var(--primary-forest);">
+        <i class="bi bi-receipt me-1 text-success"></i> Audited Premium Breakdown
+      </h6>
+      <div class="p-3 rounded-3 mb-4" style="background-color: var(--pale-mint); border: 1px solid rgba(38, 122, 106, 0.2);">
+        <div class="d-flex justify-content-between py-1 border-bottom border-secondary-subtle small">
+          <span class="text-muted">Base Plan Premium ({{ policy.plan.plan_name }})</span>
+          <span class="fw-semibold">₹{{ "{:,.2f}".format(breakdown.base_premium) }}</span>
+        </div>
+        {% for dep in breakdown.dependent_breakdown %}
+        <div class="d-flex justify-content-between py-1 border-bottom border-secondary-subtle small">
+          <span class="text-muted">+ {{ dep.label }}</span>
+          <span class="fw-semibold">₹{{ "{:,.2f}".format(dep.amount) }}</span>
+        </div>
+        {% endfor %}
+        <div class="d-flex justify-content-between py-1 border-bottom border-secondary-subtle small">
+          <span class="text-muted">Net Premium (Subtotal)</span>
+          <span class="fw-semibold">₹{{ "{:,.2f}".format(breakdown.net_premium) }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-1 border-bottom border-secondary-subtle small">
+          <span class="text-muted">Statutory GST (18.00%)</span>
+          <span class="fw-semibold">₹{{ "{:,.2f}".format(breakdown.gst_amount) }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center pt-2">
+          <span class="fw-bold" style="color: var(--primary-forest);">Total Premium Paid</span>
+          <span class="fs-5 fw-extrabold" style="color: var(--primary-forest);">₹{{ "{:,.2f}".format(breakdown.total_annual_premium) }}</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex flex-wrap gap-2 justify-content-end">
+        <a href="{{ url_for('my_policies') }}" class="btn btn-canopy-primary">
+          <i class="bi bi-shield-check me-1"></i> View in My Policies
+        </a>
+        <a href="{{ url_for('new_claim') }}" class="btn btn-canopy-outline">
+          <i class="bi bi-plus-lg me-1"></i> Create First Claim
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

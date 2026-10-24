@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Reference Data - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<!-- Header (Screen 9) -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Reference Data Management</h3>
+    <p class="text-muted mb-0 small">Manage hospitals, insurance plans, and user roles.</p>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-xs" data-bs-toggle="modal" data-bs-target="#addPlanModal">
+      <i class="bi bi-shield-plus me-1"></i> Add Insurance Plan
+    </button>
+    <button type="button" class="btn btn-canopy-primary btn-sm px-3 shadow-xs" data-bs-toggle="modal" data-bs-target="#addHospitalModal">
+      <i class="bi bi-plus-lg me-1"></i> Add Hospital
+    </button>
+    <!-- In place of Exit, button to Add User -->
+    <button type="button" class="btn btn-canopy-primary btn-sm px-3 shadow-xs" data-bs-toggle="modal" data-bs-target="#addUserModal">
+      <i class="bi bi-person-plus-fill me-1"></i> Add User
+    </button>
+  </div>
+</div>
+
+<!-- Navigation Tabs (Screen 9) -->
+<div class="canopy-card p-2 mb-4">
+  <div class="nav-pill-group">
+    <a class="nav-pill-link {% if active_tab == 'hospitals' %}active{% endif %}" href="{{ url_for('admin_reference_data', tab='hospitals') }}">
+      <i class="bi bi-hospital me-1"></i> Hospitals ({{ hospitals|length }})
+    </a>
+    <a class="nav-pill-link {% if active_tab == 'plans' %}active{% endif %}" href="{{ url_for('admin_reference_data', tab='plans') }}">
+      <i class="bi bi-shield-shaded me-1"></i> Insurance Plans ({{ plans|length }})
+    </a>
+    <a class="nav-pill-link {% if active_tab == 'users' %}active{% endif %}" href="{{ url_for('admin_reference_data', tab='users') }}">
+      <i class="bi bi-people me-1"></i> User Roles ({{ users|length }})
+    </a>
+  </div>
+</div>
+
+<!-- Tab Content -->
+<div class="canopy-card">
+  {% if active_tab == 'hospitals' %}
+    <h5 class="fw-bold mb-3" style="color: var(--primary-forest);">Registered Medical Facilities</h5>
+    <div class="table-responsive">
+      <table class="canopy-table">
+        <thead>
+          <tr>
+            <th>Hospital ID</th>
+            <th>Hospital Name</th>
+            <th>City</th>
+            <th>Network Status</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in hospitals %}
+          <tr>
+            <td class="fw-bold font-monospace">#{{ h.hospital_id }}</td>
+            <td class="fw-semibold text-dark">{{ h.name }}</td>
+            <td>{{ h.city }}</td>
+            <td>
+              {% if h.network_status %}
+                <span class="badge-network"><i class="bi bi-check-circle"></i> Network</span>
+              {% else %}
+                <span class="badge-non-network"><i class="bi bi-x-circle"></i> Non-Network</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="d-inline-flex align-items-center gap-1.5">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill py-0.5 px-2.5" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#viewHospModal{{ h.hospital_id }}">
+                  <i class="bi bi-eye me-1"></i> View Details
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill py-0.5 px-2.5" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editHospModal{{ h.hospital_id }}">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% elif active_tab == 'plans' %}
+    <h5 class="fw-bold mb-3" style="color: var(--primary-forest);">Insurance Benefit Plans</h5>
+    <div class="table-responsive">
+      <table class="canopy-table">
+        <thead>
+          <tr>
+            <th>Plan ID</th>
+            <th>Plan Name</th>
+            <th>Covered Treatments</th>
+            <th class="text-end">Annual Limit</th>
+            <th class="text-end">Deductible</th>
+            <th class="text-end">Co-pay</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in plans %}
+          <tr>
+            <td class="fw-bold font-monospace">#{{ p.plan_id }}</td>
+            <td class="fw-semibold text-dark">{{ p.plan_name }}</td>
+            <td><code>{{ p.covered_treatment_types }}</code></td>
+            <td class="text-end fw-bold" style="color: var(--primary-forest);">{{ format_inr(p.annual_limit_inr) }}</td>
+            <td class="text-end">{{ format_inr(p.deductible_inr) }}</td>
+            <td class="text-end">{{ p.copay_percent }}%</td>
+            <td class="text-center">
+              <div class="d-inline-flex align-items-center gap-1.5">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill py-0.5 px-2.5" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#viewPlanModal{{ p.plan_id }}">
+                  <i class="bi bi-eye me-1"></i> View Details
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill py-0.5 px-2.5" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editPlanModal{{ p.plan_id }}">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% elif active_tab == 'users' %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="fw-bold mb-0" style="color: var(--primary-forest);">User Accounts & Roles</h5>
+      <button type="button" class="btn btn-sm btn-canopy-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="bi bi-person-plus-fill me-1"></i> Add User
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="canopy-table">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Display Name</th>
+            <th>Role</th>
+            <th>Hospital Desk</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td class="fw-bold font-monospace">#{{ u.user_id }}</td>
+            <td><code>@{{ u.username }}</code></td>
+            <td class="fw-semibold text-dark">{{ u.display_name }}</td>
+            <td>
+              <span class="badge bg-light text-dark border text-capitalize px-2.5 py-1">
+                {{ u.role.replace('_', ' ') }}
+              </span>
+            </td>
+            <td>
+              {% if u.hospital %}
+                {{ u.hospital.name }} (ID #{{ u.hospital_id }})
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill py-0.5 px-2.5" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editUserModal{{ u.user_id }}">
+                <i class="bi bi-pencil me-1"></i> Edit Role
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- 1. Add User Modal (In place of Exit) -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white" id="addUserModalLabel">
+          <i class="bi bi-person-plus-fill me-1"></i> Add System User
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_reference_data', tab='users') }}">
+        <div class="modal-body p-4 bg-light">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="create_user" value="1">
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Username *</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">@</span>
+              <input type="text" name="username" required class="form-control" placeholder="e.g. rahul_patel">
+            </div>
+            <div class="form-text small text-muted">Unique login username (lowercase, no spaces).</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Full Display Name *</label>
+            <input type="text" name="display_name" required class="form-control form-control-sm" placeholder="e.g. Dr. Rahul Patel">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">System Role *</label>
+            <select name="role" class="form-select form-select-sm" id="new-user-role-select">
+              <option value="policyholder">Policyholder (Can purchase policies & file claims)</option>
+              <option value="hospital">Hospital Desk (Submits cashless hospital claims)</option>
+              <option value="claims_officer">Claims Officer (Adjudicates review queue)</option>
+              <option value="admin">Administrator (Full system management & reference data)</option>
+            </select>
+          </div>
+
+          <div class="mb-3" id="new-user-hospital-group">
+            <label class="form-label small fw-bold text-dark">Assigned Hospital (Hospital Desk only)</label>
+            <select name="hospital_id" class="form-select form-select-sm">
+              <option value="">None / Unassigned</option>
+              {% for h in hospitals %}
+                <option value="{{ h.hospital_id }}">{{ h.name }} ({{ h.city }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Initial Password *</label>
+            <input type="text" name="password" required value="Password123!" class="form-control form-control-sm font-monospace">
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-3 justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-canopy-primary btn-sm px-4">Create User Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Add Hospital Modal -->
+<div class="modal fade" id="addHospitalModal" tabindex="-1" aria-labelledby="addHospitalModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white" id="addHospitalModalLabel">Add New Hospital</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_reference_data', tab='hospitals') }}">
+        <div class="modal-body p-4 bg-light">
+          {{ hospital_form.hidden_tag() }}
+          <input type="hidden" name="save_hospital" value="1">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Hospital Name *</label>
+            {{ hospital_form.name(class="form-control form-control-sm", placeholder="e.g. Apex Multi-Specialty") }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">City *</label>
+            {{ hospital_form.city(class="form-control form-control-sm", placeholder="e.g. Bengaluru") }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Network Status *</label>
+            {{ hospital_form.network_status(class="form-select form-select-sm") }}
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-3 justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-canopy-primary btn-sm px-4">Save Hospital</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Add Insurance Plan Modal -->
+<div class="modal fade" id="addPlanModal" tabindex="-1" aria-labelledby="addPlanModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white" id="addPlanModalLabel">Add Insurance Plan</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_reference_data', tab='plans') }}">
+        <div class="modal-body p-4 bg-light">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="save_plan" value="1">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Plan Name *</label>
+            <input type="text" name="plan_name" required class="form-control form-control-sm" placeholder="e.g. Platinum Health Plus">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Covered Treatment Types *</label>
+            <select name="covered_treatment_types" class="form-select form-select-sm">
+              <option value="inpatient|daycare">Inpatient & Day Care (inpatient|daycare)</option>
+              <option value="inpatient">Inpatient Only (inpatient)</option>
+              <option value="daycare">Day Care Only (daycare)</option>
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-4">
+              <label class="form-label small fw-bold text-dark">Limit (₹) *</label>
+              <input type="number" name="annual_limit_inr" value="300000" min="10000" class="form-control form-control-sm">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold text-dark">Deductible (₹)</label>
+              <input type="number" name="deductible_inr" value="1500" min="0" class="form-control form-control-sm">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold text-dark">Co-pay (%)</label>
+              <input type="number" name="copay_percent" value="10" min="0" max="100" class="form-control form-control-sm">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-3 justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-canopy-primary btn-sm px-4">Save Insurance Plan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Hospital View Details and Edit Modals for Each Hospital -->
+{% for h in hospitals %}
+<div class="modal fade" id="viewHospModal{{ h.hospital_id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white"><i class="bi bi-hospital me-1"></i> {{ h.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4 bg-light text-dark small">
+        <div class="p-3 bg-white rounded-3 border mb-3">
+          <div class="row g-2">
+            <div class="col-6">
+              <span class="text-muted small">Hospital ID:</span>
+              <div class="fw-bold font-monospace">#{{ h.hospital_id }}</div>
+            </div>
+            <div class="col-6">
+              <span class="text-muted small">City:</span>
+              <div class="fw-bold">{{ h.city }}</div>
+            </div>
+            <div class="col-12 mt-2">
+              <span class="text-muted small">Network Tier:</span>
+              <div>
+                {% if h.network_status %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">
+                    <i class="bi bi-check-circle me-1"></i> Network (Cashless Pre-Auth & Reimbursement)
+                  </span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">
+                    <i class="bi bi-x-circle me-1"></i> Non-Network (Reimbursement Only)
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-3 bg-white rounded-3 border">
+          <div class="fw-bold text-dark mb-1">Key Specialties & Facilities</div>
+          <p class="text-muted mb-0" style="font-size: 0.78rem;">
+            Cardiology, ICU & Emergency Trauma Care, Inpatient Surgeries, and Daycare Laparoscopy. 24x7 TPA Desk.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer bg-white border-top p-3 justify-content-end">
+        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editHospModal{{ h.hospital_id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white">Edit Hospital #{{ h.hospital_id }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_reference_data', tab='hospitals') }}">
+        <div class="modal-body p-4 bg-light">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="edit_hospital_id" value="{{ h.hospital_id }}">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Hospital Name</label>
+            <input type="text" name="name" value="{{ h.name }}" required class="form-control form-control-sm">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">City</label>
+            <input type="text" name="city" value="{{ h.city }}" required class="form-control form-control-sm">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Network Status</label>
+            <select name="network_status" class="form-select form-select-sm">
+              <option value="1" {% if h.network_status %}selected{% endif %}>Network (Cashless)</option>
+              <option value="0" {% if not h.network_status %}selected{% endif %}>Non-Network</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-3 justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-canopy-primary btn-sm px-4">Update Hospital</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- 5. Plan View Details and Edit Modals for Each Plan -->
+{% for p in plans %}
+<div class="modal fade" id="viewPlanModal{{ p.plan_id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white"><i class="bi bi-shield-shaded me-1"></i> {{ p.plan_name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4 bg-light text-dark small">
+        <div class="p-3 bg-white rounded-3 border mb-3">
+          <div class="row g-2">
+            <div class="col-4">
+              <span class="text-muted small">Annual Limit:</span>
+              <div class="fw-bold" style="color: var(--primary-forest);">{{ format_inr(p.annual_limit_inr) }}</div>
+            </div>
+            <div class="col-4">
+              <span class="text-muted small">Deductible:</span>
+              <div class="fw-bold">{{ format_inr(p.deductible_inr) }}</div>
+            </div>
+            <div class="col-4">
+              <span class="text-muted small">Co-pay:</span>
+              <div class="fw-bold">{{ p.copay_percent }}%</div>
+            </div>
+          </div>
+        </div>
+        <div class="p-3 bg-white rounded-3 border">
+          <span class="text-muted small">Covered Treatments:</span>
+          <div class="fw-bold text-dark text-capitalize">{{ p.covered_treatment_types.replace('|', ', ') }}</div>
+          <div class="text-muted mt-2" style="font-size: 0.78rem;">
+            Full pre & post hospitalization coverage with nationwide cashless hospital network access.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-white border-top p-3 justify-content-end">
+        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editPlanModal{{ p.plan_id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white">Edit Plan #{{ p.plan_id }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_reference_data', tab='plans') }}">
+        <div class="modal-body p-4 bg-light">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="edit_plan_id" value="{{ p.plan_id }}">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Plan Name</label>
+            <input type="text" name="plan_name" value="{{ p.plan_name }}" required class="form-control form-control-sm">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Covered Treatment Types</label>
+            <select name="covered_treatment_types" class="form-select form-select-sm">
+              <option value="inpatient|daycare" {% if p.covered_treatment_types == 'inpatient|daycare' %}selected{% endif %}>Inpatient & Day Care</option>
+              <option value="inpatient" {% if p.covered_treatment_types == 'inpatient' %}selected{% endif %}>Inpatient Only</option>
+              <option value="daycare" {% if p.covered_treatment_types == 'daycare' %}selected{% endif %}>Day Care Only</option>
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-4">
+              <label class="form-label small fw-bold">Limit (₹)</label>
+              <input type="number" name="annual_limit_inr" value="{{ p.annual_limit_inr|int }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold">Deductible (₹)</label>
+              <input type="number" name="deductible_inr" value="{{ p.deductible_inr|int }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold">Co-pay (%)</label>
+              <input type="number" name="copay_percent" value="{{ p.copay_percent|int }}" class="form-control form-control-sm">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-3 justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-canopy-primary btn-sm px-4">Update Plan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- 6. Edit User Modals -->
+{% for u in users %}
+<div class="modal fade" id="editUserModal{{ u.user_id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-xl overflow-hidden">
+      <div class="modal-header text-white" style="background-color: var(--primary-forest);">
+        <h5 class="modal-title fw-bold text-white">Edit User @{{ u.username }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_reference_data', tab='users') }}">
+        <div class="modal-body p-4 bg-light">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="edit_user_id" value="{{ u.user_id }}">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Full Display Name</label>
+            <input type="text" name="display_name" value="{{ u.display_name }}" required class="form-control form-control-sm">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Role</label>
+            <select name="role" class="form-select form-select-sm">
+              <option value="policyholder" {% if u.role == 'policyholder' %}selected{% endif %}>Policyholder</option>
+              <option value="hospital" {% if u.role == 'hospital' %}selected{% endif %}>Hospital Desk</option>
+              <option value="claims_officer" {% if u.role == 'claims_officer' %}selected{% endif %}>Claims Officer</option>
+              <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Administrator</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Assigned Hospital (Hospital Desk)</label>
+            <select name="hospital_id" class="form-select form-select-sm">
+              <option value="">Unassigned</option>
+              {% for h in hospitals %}
+                <option value="{{ h.hospital_id }}" {% if u.hospital_id == h.hospital_id %}selected{% endif %}>{{ h.name }} ({{ h.city }})</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer bg-white border-top p-3 justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-canopy-primary btn-sm px-4">Update Role</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

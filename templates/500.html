@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}500 Server Error - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center py-5" style="min-height: 70vh;">
+  <div class="card p-4 p-md-5 text-center shadow-xl border" style="max-width: 440px; width: 100%; border-radius: 1.5rem; border-color: #DDE7E2 !important; background: #ffffff;">
+    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-inner" style="width: 80px; height: 80px; background-color: #fee2e2; color: #dc2626;">
+      <i class="bi bi-hdd-network-fill fs-1"></i>
+    </div>
+    
+    <div class="display-4 fw-extrabold mb-1" style="color: #dc2626; letter-spacing: -0.02em;">500</div>
+    <h4 class="fw-bold text-dark mb-2">Server Error</h4>
+    <p class="text-muted small mb-4" style="line-height: 1.5;">
+      Something went wrong on our end. Please try again later. Database transaction safely rolled back.
+    </p>
+
+    <div class="d-flex gap-2">
+      <button onclick="window.location.reload();" class="btn btn-outline-secondary flex-grow-1 justify-content-center py-2.5 fw-bold rounded-pill">
+        <i class="bi bi-arrow-clockwise me-1"></i> Retry
+      </button>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-canopy-primary flex-grow-1 justify-content-center py-2.5 fw-bold shadow-xs">
+        <i class="bi bi-house-door-fill me-1"></i> Back to Home
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
