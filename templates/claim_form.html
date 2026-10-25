@@ -9,9 +9,19 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div>
         <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">
-          New Claim - {{ 'Reimbursement' if current_user.is_policyholder else 'Cashless' }}
+          {% if is_edit %}
+            Edit Draft Claim CLM-{{ "%06d"|format(claim.claim_id) }}
+          {% else %}
+            New Claim - {{ 'Reimbursement' if current_user.is_policyholder else 'Cashless' }}
+          {% endif %}
         </h3>
-        <p class="text-muted small mb-0">Fill in the medical and financial details to submit your claim.</p>
+        <p class="text-muted small mb-0">
+          {% if is_edit %}
+            Review or modify your draft medical information and submit for review.
+          {% else %}
+            Fill in the medical and financial details to submit your claim.
+          {% endif %}
+        </p>
       </div>
       <a href="{{ url_for('claim_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
         <i class="bi bi-x-lg me-1"></i> Cancel
@@ -79,8 +89,17 @@
           </div>
 
           <div class="col-12 col-md-4">
-            <label class="form-label" for="treatment_type">Treatment Type <span class="text-danger">*</span></label>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label mb-0" for="treatment_type">Treatment Type <span class="text-danger">*</span></label>
+              <span class="badge rounded-pill" style="background-color: var(--pale-mint); color: var(--primary-forest); font-size: 0.7rem;" id="covered-treatments-badge">
+                Covered: Checking...
+              </span>
+            </div>
             {{ form.treatment_type(class="form-select", id="treatment_type") }}
+            <div id="treatment-type-warning" class="text-danger small mt-1 fw-bold d-none">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <span id="treatment-type-warning-text">Selected treatment is not covered by this policy's plan.</span>
+            </div>
             {% for err in form.treatment_type.errors %}
               <div class="text-danger small">{{ err }}</div>
             {% endfor %}
@@ -126,6 +145,10 @@
           <div class="col-12 col-md-6">
             <label class="form-label" for="description">Medical Symptoms & Diagnosis</label>
             {{ form.description(class="form-control", rows="2", placeholder="Medical treatment for fever and observation...", id="description") }}
+            <div class="form-text small text-muted mt-1 d-flex align-items-center gap-1">
+              <i class="bi bi-info-circle text-success"></i>
+              <span>Include diagnosis, attending physician notes, and admission reasons.</span>
+            </div>
             {% for err in form.description.errors %}
               <div class="text-danger small">{{ err }}</div>
             {% endfor %}
@@ -254,6 +277,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const clampBtn = document.getElementById('btn-clamp-max');
   const nextBtn = document.getElementById('btn-next-step2');
   const submitBtn = document.querySelector('button[name="submit_claim"]') || document.querySelector('input[name="submit_claim"]');
+  const treatmentSelect = document.getElementById('treatment_type');
+  const treatmentBadge = document.getElementById('covered-treatments-badge');
+  const treatmentWarning = document.getElementById('treatment-type-warning');
+  const treatmentWarningText = document.getElementById('treatment-type-warning-text');
 
   function getCurrentLimit() {
     if (!policySelect) return 100000;
@@ -264,6 +291,57 @@ document.addEventListener('DOMContentLoaded', () => {
     return 100000;
   }
 
+  function getCoveredTreatments() {
+    if (!policySelect) return ['inpatient', 'daycare'];
+    const polId = policySelect.value;
+    if (policyLimits && policyLimits[polId] && policyLimits[polId].covered_treatment_types) {
+      return policyLimits[polId].covered_treatment_types.split('|').map(t => t.trim().toLowerCase());
+    }
+    return ['inpatient', 'daycare'];
+  }
+
+  function validateTreatmentType() {
+    const covered = getCoveredTreatments();
+    if (treatmentBadge) {
+      treatmentBadge.textContent = 'Covered: ' + covered.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(' & ');
+    }
+
+    if (!treatmentSelect) return true;
+
+    // Update disabled state of treatment options
+    Array.from(treatmentSelect.options).forEach(opt => {
+      const isCov = covered.includes(opt.value.toLowerCase());
+      opt.disabled = !isCov;
+      if (!isCov) {
+        if (!opt.text.includes('(Not Covered)')) {
+          opt.text = opt.text.replace(' (Covered)', '') + ' (Not Covered)';
+        }
+      } else {
+        opt.text = opt.text.replace(' (Not Covered)', '');
+      }
+    });
+
+    const currentVal = treatmentSelect.value.toLowerCase();
+    const isCurrentCovered = covered.includes(currentVal);
+
+    if (!isCurrentCovered) {
+      treatmentSelect.classList.add('is-invalid');
+      if (treatmentWarning) {
+        treatmentWarning.classList.remove('d-none');
+        if (treatmentWarningText) {
+          treatmentWarningText.textContent = 'Selected treatment "' + currentVal + '" is not covered by this policy plan (Covers: ' + covered.join(', ') + ').';
+        }
+      }
+      if (nextBtn) nextBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+      return false;
+    } else {
+      treatmentSelect.classList.remove('is-invalid');
+      if (treatmentWarning) treatmentWarning.classList.add('d-none');
+      return true;
+    }
+  }
+
   function validateAmount() {
     const limit = getCurrentLimit();
     if (limitBadge) {
@@ -272,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!amountInput) return;
     const val = parseFloat(amountInput.value) || 0;
+    const treatmentValid = validateTreatmentType();
 
     if (val > limit) {
       amountInput.classList.add('is-invalid');
@@ -297,13 +376,27 @@ document.addEventListener('DOMContentLoaded', () => {
         okBox.classList.remove('d-none');
         okBox.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Amount is within policy coverage limit (₹' + Number(limit - val).toLocaleString('en-IN') + ' remaining).';
       }
-      if (nextBtn) nextBtn.disabled = false;
-      if (submitBtn) submitBtn.disabled = false;
+      if (treatmentValid) {
+        if (nextBtn) nextBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
+      }
     }
   }
 
   if (policySelect) {
     policySelect.addEventListener('change', () => {
+      const covered = getCoveredTreatments();
+      if (treatmentSelect && !covered.includes(treatmentSelect.value.toLowerCase())) {
+        treatmentSelect.value = covered[0] || 'inpatient';
+      }
+      validateTreatmentType();
+      validateAmount();
+    });
+  }
+
+  if (treatmentSelect) {
+    treatmentSelect.addEventListener('change', () => {
+      validateTreatmentType();
       validateAmount();
     });
   }
@@ -324,9 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Stepper navigation logic
-  const stepBtn1 = document.getElementById('step-btn-1');
-  const stepBtn2 = document.getElementById('step-btn-2');
-  const stepBtn3 = document.getElementById('step-btn-3');
   const pane1 = document.getElementById('step-pane-1');
   const pane2 = document.getElementById('step-pane-2');
   const pane3 = document.getElementById('step-pane-3');
@@ -344,10 +434,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnNextStep2) {
     btnNextStep2.addEventListener('click', () => {
       validateAmount();
+      const treatmentOk = validateTreatmentType();
+      if (!treatmentOk) {
+        alert('Validation Error: Selected Treatment Type is not covered by the chosen policy plan.');
+        return;
+      }
       const limit = getCurrentLimit();
       const val = parseFloat(amountInput?.value) || 0;
       if (val > limit) {
-        alert('Claim amount cannot exceed policy coverage limit of ₹' + Number(limit).toLocaleString('en-IN'));
+        alert('Validation Error: Claim amount cannot exceed policy coverage limit of ₹' + Number(limit).toLocaleString('en-IN'));
         return;
       }
       showStep(2);
@@ -358,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnNextStep3) btnNextStep3.addEventListener('click', () => showStep(3));
   if (btnBackStep2) btnBackStep2.addEventListener('click', () => showStep(2));
 
+  validateTreatmentType();
   validateAmount();
 });
 </script>

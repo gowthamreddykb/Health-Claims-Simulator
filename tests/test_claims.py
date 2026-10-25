@@ -57,7 +57,7 @@ def test_reject_cashless_at_non_network_hospital(client, seeded_db):
 
 def test_detect_duplicate_claim(app, seeded_db):
     with app.app_context():
-        # Claim 1007 is for member 201 on 2026-10-10
+        # Claim 1007 is for member 201 on 2026-10-10, hosp 1, 30000.00
         existing = Claim.query.get(1007)
         new_claim = Claim(
             policy_id=101,
@@ -73,3 +73,45 @@ def test_detect_duplicate_claim(app, seeded_db):
         dups = detect_potential_duplicates(new_claim)
         assert len(dups) > 0
         assert dups[0].claim_id == 1007
+
+        # Case 1: Same member, same dates, but different hospital -> NOT duplicate
+        diff_hosp_claim = Claim(
+            policy_id=101,
+            member_id=201,
+            hospital_id=2,
+            claim_type="reimbursement",
+            treatment_type="inpatient",
+            admission_date=date(2026, 10, 10),
+            discharge_date=date(2026, 10, 14),
+            requested_amount_inr=Decimal("30000.00"),
+            status="draft"
+        )
+        assert len(detect_potential_duplicates(diff_hosp_claim)) == 0
+
+        # Case 2: Same member, same hospital, but different amount -> NOT duplicate
+        diff_amt_claim = Claim(
+            policy_id=101,
+            member_id=201,
+            hospital_id=1,
+            claim_type="reimbursement",
+            treatment_type="inpatient",
+            admission_date=date(2026, 10, 10),
+            discharge_date=date(2026, 10, 14),
+            requested_amount_inr=Decimal("50000.00"),
+            status="draft"
+        )
+        assert len(detect_potential_duplicates(diff_amt_claim)) == 0
+
+        # Case 3: Same member, same amount, but different dates -> NOT duplicate
+        diff_date_claim = Claim(
+            policy_id=101,
+            member_id=201,
+            hospital_id=1,
+            claim_type="reimbursement",
+            treatment_type="inpatient",
+            admission_date=date(2026, 10, 20),
+            discharge_date=date(2026, 10, 24),
+            requested_amount_inr=Decimal("30000.00"),
+            status="draft"
+        )
+        assert len(detect_potential_duplicates(diff_date_claim)) == 0

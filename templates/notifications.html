@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Health Claims Simulator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Notifications</h3>
+    <p class="text-xs text-muted mt-0.5 mb-0">System updates, claim review alerts, and status changes.</p>
+  </div>
+  {% if notifications %}
+  <form method="POST" action="{{ url_for('mark_all_notifications_read') }}">
+    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 text-xs fw-semibold d-inline-flex align-items-center gap-1.5" style="border-color: #DDE7E2; color: #172D2A;">
+      <i class="bi bi-check2-all"></i>
+      <span>Mark All as Read</span>
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="canopy-card p-0 overflow-hidden mb-4">
+  {% if notifications %}
+    <div class="list-group list-group-flush">
+      {% for notif in notifications %}
+      <div class="list-group-item p-3.5 border-bottom d-flex align-items-start justify-content-between gap-3 {% if not notif.is_read %}bg-light{% endif %}" style="border-color: #F0F4F2 !important;">
+        <div class="d-flex align-items-start gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0 mt-0.5" style="width: 36px; height: 36px; background-color: {% if not notif.is_read %}#E7F1ED{% else %}#F0F4F2{% endif %}; color: {% if not notif.is_read %}#10483F{% else %}#81948D{% endif %};">
+            <i class="bi bi-bell{% if not notif.is_read %}-fill{% endif %}"></i>
+          </div>
+          <div>
+            <div class="fw-semibold text-dark text-sm mb-0.5">{{ notif.message }}</div>
+            <div class="text-muted text-xs d-flex align-items-center gap-2">
+              <span>{{ notif.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+              {% if not notif.is_read %}
+                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-0.5 text-[10px]">Unread</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        {% if not notif.is_read %}
+        <form method="POST" action="{{ url_for('mark_notification_read', notification_id=notif.notification_id) }}">
+          <button type="submit" class="btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-semibold text-muted hover-forest" style="border: 1px solid #DDE7E2; background: white;" title="Mark as read">
+            <i class="bi bi-check"></i> Read
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-5 text-muted">
+      <div class="w-12 h-12 rounded-full bg-[#E7F1ED] text-[#10483F] flex items-center justify-center mx-auto mb-2" style="width: 48px; height: 48px; border-radius: 50%; background: #E7F1ED; color: #10483F; margin: 0 auto 0.75rem auto; display: flex; align-items: center; justify-content: center;">
+        <i class="bi bi-bell-slash fs-4"></i>
+      </div>
+      <div class="fw-bold text-dark">No Notifications</div>
+      <div class="text-xs text-muted mt-1">You're all caught up! New claim updates will appear here.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

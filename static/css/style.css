@@ -25,34 +25,38 @@ body {
 .canopy-navbar {
   background: #ffffff;
   border-bottom: 1px solid var(--border-color);
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
 }
 
 .brand-logo-container {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.6rem;
   font-weight: 700;
   color: var(--primary-forest);
   text-decoration: none;
-  font-size: 1.15rem;
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .nav-pill-group {
   background: var(--pale-mint);
   border-radius: 9999px;
-  padding: 0.25rem 0.5rem;
+  padding: 3px;
   display: inline-flex;
-  gap: 0.25rem;
+  gap: 2px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .nav-pill-link {
   color: var(--text-main);
   text-decoration: none;
-  padding: 0.4rem 1rem;
+  padding: 0.32rem 0.8rem;
   border-radius: 9999px;
-  font-weight: 500;
-  font-size: 0.88rem;
+  font-weight: 600;
+  font-size: 0.76rem;
+  white-space: nowrap;
   transition: all 0.15s ease-in-out;
 }
 
@@ -65,66 +69,69 @@ body {
   background: var(--primary-forest);
   color: #ffffff !important;
   font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .btn-canopy-primary {
-  background-color: var(--primary-forest);
+  background-color: #10483F;
   color: #ffffff !important;
   border-radius: 9999px;
-  padding: 0.45rem 1.25rem;
+  padding: 0.45rem 1.15rem;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.75rem;
   border: none;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   text-decoration: none;
-  transition: background-color 0.15s;
+  transition: all 0.15s ease-in-out;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .btn-canopy-primary:hover {
-  background-color: var(--active-nav);
+  background-color: #0D3F37;
   color: #ffffff !important;
 }
 
 .btn-canopy-outline {
   background-color: transparent;
-  color: var(--primary-forest) !important;
-  border: 1px solid var(--primary-forest);
+  color: #10483F !important;
+  border: 1px solid #10483F;
   border-radius: 9999px;
-  padding: 0.45rem 1.25rem;
+  padding: 0.45rem 1.15rem;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.75rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all 0.15s ease-in-out;
 }
 
 .btn-canopy-outline:hover {
-  background-color: var(--pale-mint);
-  color: var(--primary-forest) !important;
+  background-color: #E7F1ED;
+  color: #10483F !important;
 }
 
-/* Canopy Rounded Cards */
+/* Canopy Rounded Cards matching React preview */
 .canopy-card {
-  background: var(--card-bg);
-  border-radius: 1rem;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(16, 72, 63, 0.04);
+  background: #ffffff;
+  border-radius: 1.5rem;
+  border: 1px solid #DDE7E2;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .metric-stat-card {
   background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 0.875rem;
-  padding: 1.25rem;
+  border: 1px solid #DDE7E2;
+  border-radius: 1rem;
+  padding: 1.1rem 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -162,12 +169,15 @@ body {
 .status-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   gap: 0.35rem;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
+  line-height: 1.25;
 }
 
 .status-submitted { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
@@ -189,6 +199,7 @@ body {
   border: 1px solid #bbf7d0;
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   gap: 0.25rem;
 }
 
@@ -202,6 +213,7 @@ body {
   border: 1px solid #fecaca;
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   gap: 0.25rem;
 }
 
@@ -214,21 +226,22 @@ body {
 }
 
 .canopy-table th {
-  background: #fbfdfc;
-  color: var(--muted-text);
-  font-size: 0.78rem;
+  background: #ffffff;
+  color: #81948D;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.85rem 1rem;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 0.85rem;
   border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 
 .canopy-table td {
-  padding: 6px;
+  padding: 0.8rem 0.85rem;
   vertical-align: middle;
   border-bottom: 1px solid #f0f4f2;
-  font-size: 12px;
+  font-size: 0.85rem;
 }
 
 .canopy-table tbody tr:hover {
@@ -320,137 +333,4 @@ footer {
   color: var(--muted-text);
   font-size: 0.8rem;
   border-top: 1px solid var(--border-color);
-}
-
-
-
-.canopy-navbar {
-  padding: 18px 16px;
-  
-}
-
-.canopy-header-inner {
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: 10px;
-}
-
-.canopy-header-inner > .brand-logo-container {
-  flex: 0 0 auto;
-  white-space: nowrap;
-  gap: 8px !important;
-}
-
-.canopy-header-inner .nav-pill-group {
-  display: flex;
-  flex: 0 1 auto;
-  align-items: center;
-  min-width: 0;
-  gap: 0;
-  padding: 3px;
-  white-space: nowrap;
-}
-
-.canopy-header-inner .nav-pill-link {
-  flex: 0 0 auto;
-  padding: 8px 10px;
-  font-size: 0.82rem;
-  white-space: nowrap;
-}
-
-.canopy-header-inner > .header-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 0 0 auto;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.canopy-header-inner .btn-canopy-primary {
-  padding: 8px 12px;
-  font-size: 0.82rem;
-  white-space: nowrap;
-}
-
-.canopy-header-inner .user-profile-dropdown {
-  flex: 0 0 auto;
-}
-
-.canopy-header-inner .user-profile-dropdown > button {
-  white-space: nowrap;
-}
-
-/* Medium desktop screens */
-@media (min-width: 768px) and (max-width: 1199.98px) {
-  .canopy-navbar {
-    padding: 8px 10px;
-  }
-
-  .canopy-header-inner {
-    gap: 6px;
-  }
-
-  .canopy-header-inner .brand-subtitle {
-    display: none;
-  }
-
-  .canopy-header-inner .nav-pill-link {
-    padding: 8px 6px;
-    font-size: 0.76rem;
-  }
-
-  .canopy-header-inner .btn-canopy-primary {
-    padding: 8px;
-    font-size: 0.75rem;
-  }
-
-  .canopy-header-inner .profile-text {
-    display: none !important;
-  }
-}
-
-/* Mobile layout uses the original mobile navigation sub-bar */
-@media (max-width: 767.98px) {
-  .canopy-navbar {
-    padding: 8px 12px 0;
-  }
-
-  .canopy-header-inner {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .canopy-header-inner .nav-pill-group {
-    display: none !important;
-  }
-
-  .canopy-header-inner > .header-actions {
-    margin-left: auto;
-  }
-
-  .canopy-header-inner .brand-logo-container {
-    max-width: 100%;
-  }
-
-  .canopy-header-inner .brand-subtitle {
-    display: none;
-  }
-}
-
-
-.step-connector {
-    height: 2px;
-    border: 0 !important;
-    background-color: #dfe7e4;
-    transition: background-color 0.25s ease;
-}
-
-.step-connector.completed {
-    background-color: var(--primary-forest);
 }

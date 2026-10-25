@@ -99,32 +99,41 @@
           </button>
         </form>
 
-        <!-- Quick Demo Switcher Pane -->
-       <!--  <div class="p-3 rounded-3 mt-4 border" style="background-color: #F9FCFA; border-color: #DDE7E2 !important;">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="text-muted fw-bold" style="font-size: 0.75rem;">
-              <i class="bi bi-person-badge me-1"></i> Quick Role Switch / Sign In
-            </span>
-            <span class="text-muted" style="font-size: 0.68rem;">1-Click Role Login</span>
+        <!-- Quick Demo Accounts Selection matching reference preview -->
+        <div class="mt-4 pt-4 border-top" style="border-color: #DDE7E2 !important;">
+          <div class="text-muted fw-semibold mb-2" style="font-size: 0.72rem; color: #81948D !important;">
+            Select Demo Role (Instant Login):
           </div>
-          <div class="d-flex flex-wrap gap-1.5" style="font-size: 0.75rem;">
-            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('aasha', 'Password123!')">
-              <i class="bi bi-shield-check text-success me-1"></i> Policyholder (aasha)
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('city_hospital', 'Password123!')">
-              <i class="bi bi-hospital text-primary me-1"></i> Hospital (city_hospital)
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('officer_meera', 'Password123!')">
-              <i class="bi bi-clipboard2-check text-warning me-1"></i> Claims Officer (officer_meera)
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2" onclick="quickFillAndLogin('admin_demo', 'Password123!')">
-              <i class="bi bi-gear text-dark me-1"></i> Administrator (admin_demo)
-            </button>
+          <div class="row g-2">
+            <div class="col-6">
+              <button type="button" class="btn p-2 text-start w-100 rounded-3 border bg-white shadow-2xs hover-lift" style="border-color: #DDE7E2;" onclick="quickFillAndLogin('aasha', 'Password123!')">
+                <div class="fw-bold text-dark" style="font-size: 0.75rem;">John Doe</div>
+                <div style="font-size: 0.68rem; color: #267A6A; font-weight: 500;">Policyholder</div>
+              </button>
+            </div>
+            <div class="col-6">
+              <button type="button" class="btn p-2 text-start w-100 rounded-3 border bg-white shadow-2xs hover-lift" style="border-color: #DDE7E2;" onclick="quickFillAndLogin('city_hospital', 'Password123!')">
+                <div class="fw-bold text-dark" style="font-size: 0.75rem;">CityCare Desk</div>
+                <div style="font-size: 0.68rem; color: #267A6A; font-weight: 500;">Hospital Desk</div>
+              </button>
+            </div>
+            <div class="col-6">
+              <button type="button" class="btn p-2 text-start w-100 rounded-3 border bg-white shadow-2xs hover-lift" style="border-color: #DDE7E2;" onclick="quickFillAndLogin('officer_meera', 'Password123!')">
+                <div class="fw-bold text-dark" style="font-size: 0.75rem;">Meera Shah</div>
+                <div style="font-size: 0.68rem; color: #267A6A; font-weight: 500;">Claims Officer</div>
+              </button>
+            </div>
+            <div class="col-6">
+              <button type="button" class="btn p-2 text-start w-100 rounded-3 border bg-white shadow-2xs hover-lift" style="border-color: #DDE7E2;" onclick="quickFillAndLogin('admin_demo', 'Password123!')">
+                <div class="fw-bold text-dark" style="font-size: 0.75rem;">Demo Admin</div>
+                <div style="font-size: 0.68rem; color: #267A6A; font-weight: 500;">Administrator</div>
+              </button>
+            </div>
           </div>
-          <div class="text-muted mt-2" style="font-size: 0.68rem;">
-            Click any role above to automatically authenticate and navigate directly to that role's dashboard.
-          </div>
-        </div> -->
+          <p class="text-center text-muted mt-2 mb-0" style="font-size: 0.68rem;">
+            Demo accounts are provided by the project administrator.
+          </p>
+        </div>
 
         <script>
           function togglePasswordVisibility() {

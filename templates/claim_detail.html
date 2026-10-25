@@ -25,7 +25,17 @@
 
   <!-- Role Action Buttons at Top Right -->
   <div class="d-flex align-items-center gap-2">
-    {% if current_user.is_claims_officer and claim.status == 'submitted' and not claim.officer_user_id %}
+    {% if claim.status == 'draft' and (current_user.is_policyholder or current_user.is_hospital_desk) %}
+      <a href="{{ url_for('edit_claim', claim_id=claim.claim_id) }}" class="btn btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold small" style="border-color: #60726B; color: var(--primary-forest); background-color: #ffffff;">
+        <i class="bi bi-pencil-square me-1"></i> Edit Draft
+      </a>
+      <form method="POST" action="{{ url_for('submit_draft_claim', claim_id=claim.claim_id) }}" class="m-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-canopy-primary">
+          <i class="bi bi-send-check-fill me-1"></i> Submit Claim
+        </button>
+      </form>
+    {% elif current_user.is_claims_officer and claim.status == 'submitted' and not claim.officer_user_id %}
       <form method="POST" action="{{ url_for('assign_claim', claim_id=claim.claim_id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <button type="submit" class="btn btn-canopy-primary">
@@ -43,20 +53,48 @@
   </div>
 </div>
 
+<!-- Draft Notice Banner -->
+{% if claim.status == 'draft' %}
+<div class="alert rounded-3 shadow-sm mb-4 border d-flex align-items-center justify-content-between flex-wrap gap-3" style="background-color: var(--pale-mint); border-color: #C9DAD5;">
+  <div class="d-flex align-items-center gap-3">
+    <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px; background-color: var(--primary-forest); flex-shrink: 0;">
+      <i class="bi bi-file-earmark-text-fill fs-5"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="color: var(--primary-forest); font-size: 0.95rem;">Draft Claim — Ready to Review & Submit</div>
+      <div class="small text-muted">This claim is currently saved as a draft. When ready, submit it to automatically assign a Claims Officer via Round-Robin rotation.</div>
+    </div>
+  </div>
+  {% if current_user.is_policyholder or current_user.is_hospital_desk %}
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('edit_claim', claim_id=claim.claim_id) }}" class="btn btn-outline-dark rounded-pill px-3 py-1.5 fw-semibold small bg-white">
+      <i class="bi bi-pencil-square me-1"></i> Edit Draft
+    </a>
+    <form method="POST" action="{{ url_for('submit_draft_claim', claim_id=claim.claim_id) }}" class="m-0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-canopy-primary rounded-pill px-3 py-1.5 fw-semibold small">
+        <i class="bi bi-send-check-fill me-1"></i> Submit Claim Now
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <!-- Duplicate Alert Banner if flagged -->
 {% if duplicates %}
-<!-- <div class="alert alert-warning d-flex align-items-center gap-3 rounded-3 shadow-sm mb-4 border" role="alert">
+<div class="alert alert-warning d-flex align-items-center gap-3 rounded-3 shadow-sm mb-4 border" role="alert" style="background-color: #FEF9C3; border-color: #FDE047; color: #854D0E;">
   <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
   <div>
-    <strong>Potential Duplicate Event Flagged:</strong> Other claim(s) found for {{ claim.member.display_name }} around {{ claim.admission_date.strftime('%d %b %Y') }}:
+    <strong>Duplicate Claim Detected:</strong> Identical claim record found for {{ claim.member.display_name }}:
     {% for dup in duplicates %}
       <a href="{{ url_for('claim_detail', claim_id=dup.claim_id) }}" class="badge bg-warning text-dark text-decoration-none ms-1">
         CLM-{{ "%06d"|format(dup.claim_id) }} ({{ dup.status }})
       </a>
     {% endfor %}
-    <span class="small d-block text-muted">Review carefully before approving. Fictional simulator learning case.</span>
+    <span class="small d-block text-muted mt-0.5">All details in this record match an existing claim (same member, policy, hospital, dates, and requested amount). Review carefully before approving.</span>
   </div>
-</div> -->
+</div>
 {% endif %}
 
 <div class="row g-4">

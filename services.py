@@ -131,20 +131,47 @@ def calculate_claim_payout(eligible_amount: Decimal, plan: Plan) -> Dict[str, De
 
 def detect_potential_duplicates(claim: Claim) -> List[Claim]:
     """
-    Flags other claims that have the same member and either same admission date
-    or same requested amount within 30 days.
+    Flags other claims only when the whole claim record is identical:
+    same member, same policy, same hospital, same admission date,
+    same discharge date, same claim type, same treatment type,
+    and same requested amount.
+    If the whole record is not identical, it is not flagged as a duplicate.
     """
+    if not claim:
+        return []
+
     query = Claim.query.filter(
         Claim.member_id == claim.member_id,
         Claim.claim_id != (claim.claim_id or -1)
     )
     duplicates = []
+    try:
+        claim_amt = Decimal(str(claim.requested_amount_inr or 0))
+    except Exception:
+        claim_amt = Decimal("0")
+
     for other in query.all():
-        same_date = (other.admission_date == claim.admission_date)
-        days_diff = abs((other.admission_date - claim.admission_date).days)
-        same_amt = (abs(Decimal(str(other.requested_amount_inr)) - Decimal(str(claim.requested_amount_inr))) < Decimal("0.01"))
-        if same_date or (days_diff <= 30 and same_amt):
+        if other.status == "withdrawn":
+            continue
+
+        same_policy = (other.policy_id == claim.policy_id)
+        same_hospital = (other.hospital_id == claim.hospital_id)
+        same_adm = (other.admission_date == claim.admission_date)
+        same_dis = (other.discharge_date == claim.discharge_date)
+        same_claim_type = (other.claim_type == claim.claim_type)
+        same_treatment_type = (other.treatment_type == claim.treatment_type)
+
+        try:
+            other_amt = Decimal(str(other.requested_amount_inr or 0))
+            same_amt = (abs(other_amt - claim_amt) < Decimal("0.01"))
+        except Exception:
+            same_amt = False
+
+        # Flag only when the whole record matches
+        if (same_policy and same_hospital and same_adm and same_dis and
+                same_claim_type and same_treatment_type and same_amt):
             duplicates.append(other)
+
     return duplicates
 
 def can_user_view_claim(user: User, claim: Claim) -> bool:

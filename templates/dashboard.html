@@ -250,34 +250,41 @@
         <table class="canopy-table">
           <thead>
             <tr>
-              <th>Claim ID</th>
-              <th>Member</th>
-              <th>Hospital</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th class="text-end">Amount</th>
-              <th>Date</th>
-              <th>Action</th>
+              <th class="text-nowrap">CLAIM ID</th>
+              <th>MEMBER</th>
+              <th>HOSPITAL</th>
+              <th class="text-nowrap">TYPE</th>
+              <th class="text-nowrap text-center">STATUS</th>
+              <th class="text-end text-nowrap">AMOUNT</th>
+              <th class="text-nowrap">DATE</th>
+              <th class="text-center text-nowrap">ACTION</th>
             </tr>
           </thead>
           <tbody>
             {% for c in metrics.recent_claims %}
             <tr>
-              <td class="fw-bold">CLM-{{ "%06d"|format(c.claim_id) }}</td>
-              <td>{{ c.member.display_name }}</td>
-              <td class="text-truncate" style="max-width: 140px;">{{ c.hospital.name }}</td>
-              <td class="text-capitalize">{{ c.claim_type }}</td>
-              <td>
+              <td class="fw-bold text-nowrap" style="color: var(--text-main);">CLM-{{ "%06d"|format(c.claim_id) }}</td>
+              <td class="text-nowrap fw-medium">{{ c.member.display_name }}</td>
+              <td class="text-truncate" style="max-width: 150px;" title="{{ c.hospital.name }}">{{ c.hospital.name }}</td>
+              <td class="text-capitalize text-nowrap">{{ c.claim_type }}</td>
+              <td class="text-nowrap text-center">
                 <span class="status-pill status-{{ c.status }}">
                   {{ c.status.replace('_', ' ') }}
                 </span>
               </td>
-              <td class="text-end fw-semibold">{{ format_inr(c.requested_amount_inr) }}</td>
-              <td class="text-muted small">{{ c.admission_date.strftime('%d %b %Y') }}</td>
-              <td>
-                <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm btn-canopy-outline py-1 px-2" style="font-size: 0.78rem;">
-                  View
-                </a>
+              <td class="text-end fw-bold text-nowrap" style="color: var(--primary-forest);">{{ format_inr(c.requested_amount_inr) }}</td>
+              <td class="text-muted small text-nowrap">{{ c.admission_date.strftime('%d %b %Y') if c.admission_date else '—' }}</td>
+              <td class="text-center text-nowrap">
+                <div class="d-inline-flex align-items-center gap-1.5">
+                  {% if c.status == 'draft' and (current_user.is_policyholder or current_user.is_hospital_desk) %}
+                    <a href="{{ url_for('edit_claim', claim_id=c.claim_id) }}" class="btn btn-sm rounded-pill px-2.5 py-0.5 text-xs fw-semibold text-decoration-none" style="border: 1px solid #267A6A; color: #267A6A; background: white;" onmouseover="this.style.background='#267A6A'; this.style.color='#FFFFFF';" onmouseout="this.style.background='#FFFFFF'; this.style.color='#267A6A';">
+                      Edit
+                    </a>
+                  {% endif %}
+                  <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm rounded-pill px-2.5 py-1 text-xs fw-semibold text-decoration-none" style="border: 1px solid #10483F; color: #10483F; background: white;" onmouseover="this.style.background='#10483F'; this.style.color='#FFFFFF';" onmouseout="this.style.background='#FFFFFF'; this.style.color='#10483F';">
+                    View
+                  </a>
+                </div>
               </td>
             </tr>
             {% else %}

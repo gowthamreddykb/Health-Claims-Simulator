@@ -6,11 +6,16 @@
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
   <div>
     <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Review Queue</h3>
-    <p class="text-muted mb-0 small">Claims awaiting your assessment and decision.</p>
+    <p class="text-xs text-muted mt-0.5 mb-0">Claims awaiting your review and decision.</p>
   </div>
-  <div class="d-flex gap-2">
-    <a href="{{ url_for('review_queue') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-      <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+  <div class="d-flex align-items-center gap-2">
+    <button type="button" onclick="document.getElementById('reviewQueueFilterCard')?.classList.toggle('d-none')" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 text-xs fw-semibold d-flex align-items-center gap-1.5" style="border-color: #DDE7E2; color: #172D2A;">
+      <i class="bi bi-funnel"></i>
+      <span>Filter</span>
+    </button>
+    <a href="{{ url_for('review_queue') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 text-xs fw-semibold d-flex align-items-center gap-1.5" style="border-color: #DDE7E2; color: #172D2A;">
+      <i class="bi bi-arrow-clockwise"></i>
+      <span>Refresh</span>
     </a>
   </div>
 </div>
@@ -94,41 +99,41 @@
     <table class="canopy-table">
       <thead>
         <tr>
-          <th>Claim ID</th>
-          <th>Member</th>
-          <th>Hospital</th>
-          <th>Assigned Officer</th>
-          <th>Type</th>
-          <th class="text-end">Amount</th>
-          <th>Status</th>
-          <th>Action</th>
+          <th class="text-nowrap">CLAIM ID</th>
+          <th>MEMBER</th>
+          <th>HOSPITAL</th>
+          <th class="text-nowrap">ASSIGNED OFFICER</th>
+          <th class="text-nowrap">TYPE</th>
+          <th class="text-end text-nowrap">AMOUNT</th>
+          <th class="text-nowrap text-center">STATUS</th>
+          <th class="text-center text-nowrap">ACTION</th>
         </tr>
       </thead>
       <tbody>
         {% for c in claims %}
         <tr>
-          <td class="fw-bold">CLM-{{ "%06d"|format(c.claim_id) }}</td>
-          <td>{{ c.member.display_name }}</td>
-          <td class="text-truncate" style="max-width: 150px;">{{ c.hospital.name }}</td>
-          <td>
+          <td class="fw-bold text-nowrap" style="color: var(--text-main);">CLM-{{ "%06d"|format(c.claim_id) }}</td>
+          <td class="text-nowrap fw-medium">{{ c.member.display_name }}</td>
+          <td class="text-truncate" style="max-width: 150px;" title="{{ c.hospital.name }}">{{ c.hospital.name }}</td>
+          <td class="text-nowrap">
             {% if c.officer %}
-              <span class="badge bg-light text-dark border py-1 px-2">
+              <span class="badge bg-light text-dark border py-1 px-2.5 rounded-pill">
                 <i class="bi bi-arrow-repeat text-success me-1"></i>{{ c.officer.display_name }}
               </span>
             {% else %}
               <span class="text-muted small fst-italic">Unassigned</span>
             {% endif %}
           </td>
-          <td class="text-capitalize">{{ c.claim_type }}</td>
-          <td class="text-end fw-bold" style="color: var(--primary-forest);">{{ format_inr(c.requested_amount_inr) }}</td>
-          <td>
+          <td class="text-capitalize text-nowrap">{{ c.claim_type }}</td>
+          <td class="text-end fw-bold text-nowrap" style="color: var(--primary-forest);">{{ format_inr(c.requested_amount_inr) }}</td>
+          <td class="text-nowrap text-center">
             <span class="status-pill status-{{ c.status }}">
               {{ c.status.replace('_', ' ') }}
             </span>
           </td>
-          <td>
-            <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm btn-canopy-primary py-1 px-3" style="font-size: 0.8rem;">
-              <i class="bi bi-eye-fill me-1"></i> Review
+          <td class="text-center text-nowrap">
+            <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm rounded-pill px-3.5 py-1 text-xs fw-bold text-decoration-none d-inline-flex align-items-center gap-1" style="border: 1px solid #10483F; color: #10483F; background: white;" onmouseover="this.style.background='#10483F'; this.style.color='#FFFFFF';" onmouseout="this.style.background='#FFFFFF'; this.style.color='#10483F';">
+              Review
             </a>
           </td>
         </tr>

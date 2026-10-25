@@ -6,7 +6,7 @@
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
   <div>
     <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Claims Management</h3>
-    <p class="text-muted mb-0 small">Search, filter and track all your claims across processing stages.</p>
+    <p class="text-xs text-muted mt-0.5 mb-0">Search, filter and track all your claims.</p>
   </div>
   {% if current_user.is_policyholder or current_user.is_hospital_desk %}
   <a href="{{ url_for('new_claim') }}" class="btn btn-canopy-primary">
@@ -114,45 +114,52 @@
     <table class="canopy-table">
       <thead>
         <tr>
-          <th>Claim ID</th>
-          <th>Member</th>
-          <th>Hospital</th>
-          <th>Type</th>
-          <th class="text-end">Amount</th>
-          <th>Status</th>
-          <th>Last Updated</th>
-          <th>Action</th>
+          <th class="text-nowrap">CLAIM ID</th>
+          <th>MEMBER</th>
+          <th>HOSPITAL</th>
+          <th class="text-nowrap">TYPE</th>
+          <th class="text-end text-nowrap">AMOUNT</th>
+          <th class="text-nowrap text-center">STATUS</th>
+          <th class="text-nowrap">LAST UPDATED</th>
+          <th class="text-center text-nowrap">ACTION</th>
         </tr>
       </thead>
       <tbody>
         {% for c in claims %}
         <tr>
-          <td class="fw-bold">CLM-{{ "%06d"|format(c.claim_id) }}</td>
+          <td class="fw-bold text-nowrap" style="color: var(--text-main);">CLM-{{ "%06d"|format(c.claim_id) }}</td>
           <td>
-            <div class="fw-semibold">{{ c.member.display_name }}</div>
-            <div class="text-muted" style="font-size: 0.72rem;">Policy #{{ c.policy_id }}</div>
+            <div class="fw-semibold text-nowrap">{{ c.member.display_name }}</div>
+            <div class="text-muted text-nowrap" style="font-size: 0.72rem;">Policy #{{ c.policy_id }}</div>
           </td>
-          <td class="text-truncate" style="max-width: 160px;">{{ c.hospital.name }}</td>
+          <td class="text-truncate" style="max-width: 160px;" title="{{ c.hospital.name }}">{{ c.hospital.name }}</td>
           <td>
-            <span class="badge bg-light text-dark border text-capitalize">
+            <span class="badge bg-light text-dark border text-capitalize text-nowrap">
               {{ c.claim_type }}
             </span>
           </td>
-          <td class="text-end fw-bold" style="color: var(--primary-forest);">
+          <td class="text-end fw-bold text-nowrap" style="color: var(--primary-forest);">
             {{ format_inr(c.requested_amount_inr) }}
           </td>
-          <td>
+          <td class="text-nowrap text-center">
             <span class="status-pill status-{{ c.status }}">
               {{ c.status.replace('_', ' ') }}
             </span>
           </td>
-          <td class="text-muted small">
+          <td class="text-muted small text-nowrap">
             {{ c.updated_at.strftime('%d %b %Y') if c.updated_at else c.admission_date.strftime('%d %b %Y') }}
           </td>
-          <td>
-            <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm btn-canopy-outline py-1 px-3" style="font-size: 0.8rem;">
-              View
-            </a>
+          <td class="text-center text-nowrap">
+            <div class="d-inline-flex align-items-center gap-1.5">
+              {% if c.status == 'draft' and (current_user.is_policyholder or current_user.is_hospital_desk) %}
+                <a href="{{ url_for('edit_claim', claim_id=c.claim_id) }}" class="btn btn-sm rounded-pill px-2.5 py-0.5 text-xs fw-semibold text-decoration-none" style="border: 1px solid #267A6A; color: #267A6A; background: white;" onmouseover="this.style.background='#267A6A'; this.style.color='#FFFFFF';" onmouseout="this.style.background='#FFFFFF'; this.style.color='#267A6A';">
+                  Edit
+                </a>
+              {% endif %}
+              <a href="{{ url_for('claim_detail', claim_id=c.claim_id) }}" class="btn btn-sm rounded-pill px-3 py-1 text-xs fw-semibold text-decoration-none" style="border: 1px solid #10483F; color: #10483F; background: white;" onmouseover="this.style.background='#10483F'; this.style.color='#FFFFFF';" onmouseout="this.style.background='#FFFFFF'; this.style.color='#10483F';">
+                View
+              </a>
+            </div>
           </td>
         </tr>
         {% else %}

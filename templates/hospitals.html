@@ -6,7 +6,7 @@
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
   <div>
     <h3 class="fw-bold mb-1" style="color: var(--primary-forest);">Hospital Directory</h3>
-    <p class="text-muted mb-0 small">Find network hospitals for cashless treatment and partner medical desks.</p>
+    <p class="text-xs text-muted mt-0.5 mb-0">Find network hospitals for cashless treatment and certified healthcare facilities.</p>
   </div>
 </div>
 
@@ -30,7 +30,7 @@
     <div class="col-12 col-md-3">
       <select name="network" class="form-select">
         <option value="">All Network Status</option>
-        <option value="1" {% if selected_network == '1' %}selected{% endif %}>Network (Cashless)</option>
+        <option value="1" {% if selected_network == '1' %}selected{% endif %}>Network</option>
         <option value="0" {% if selected_network == '0' %}selected{% endif %}>Non-Network</option>
       </select>
     </div>
@@ -46,15 +46,15 @@
 </div>
 
 <!-- Hospitals Table (Screen 4) -->
-<div class="canopy-card mb-4">
+<div class="canopy-card mb-4 p-0 overflow-hidden">
   <div class="table-responsive">
-    <table class="canopy-table">
+    <table class="canopy-table mb-0">
       <thead>
         <tr>
           <th>Hospital Name</th>
           <th>City</th>
           <th>Network Status</th>
-          <th>Action</th>
+          <th class="text-center">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -76,10 +76,11 @@
               </span>
             {% endif %}
           </td>
-          <td>
-            <div class="d-flex align-items-center gap-2">
-              <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#viewHospitalModal{{ h.hospital_id }}">
-                <i class="bi bi-eye me-1"></i> View
+          <td class="text-center">
+            <div class="d-flex align-items-center justify-content-center gap-2">
+              <button type="button" class="btn btn-sm rounded-pill px-3 py-1 text-xs fw-semibold d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewHospitalModal{{ h.hospital_id }}" style="border: 1px solid #10483F; color: #10483F; background: white;" onmouseover="this.style.background='#10483F'; this.style.color='#FFFFFF';" onmouseout="this.style.background='#FFFFFF'; this.style.color='#10483F';">
+                <i class="bi bi-eye"></i>
+                <span>View Details</span>
               </button>
               {% if current_user.is_hospital_desk and current_user.hospital_id == h.hospital_id %}
                 <span class="badge bg-light text-success border">My Desk</span>
@@ -200,6 +201,9 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+  <div class="p-3 text-muted border-top small" style="border-color: #DDE7E2 !important; font-size: 11px;">
+    Showing 1 - {{ hospitals|length }} of {{ hospitals|length }} hospitals
   </div>
 </div>
 {% endblock %}

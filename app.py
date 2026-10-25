@@ -288,7 +288,15 @@ def create_app(config_class=Config):
             )
 
         policies = query.order_by(Policy.policy_id.asc()).all()
-        return render_template("my_policies.html", policies=policies, status_filter=status_filter, search_query=search_query)
+        today = date.today()
+        remaining_covers = {p.policy_id: calculate_remaining_cover(p, today) for p in policies}
+        return render_template(
+            "my_policies.html",
+            policies=policies,
+            remaining_covers=remaining_covers,
+            status_filter=status_filter,
+            search_query=search_query
+        )
 
     @app.route("/buy-policy", methods=["GET", "POST"])
     @login_required
@@ -578,13 +586,17 @@ def create_app(config_class=Config):
 
         form = ClaimForm()
 
-        # Populate Select choices based on user role
+        today = date.today()
+        # Populate Select choices based on user role - ONLY ACTIVE POLICIES
         if current_user.is_policyholder:
-            user_policies = Policy.query.filter_by(holder_user_id=current_user.user_id, status="active").all()
+            user_policies = [
+                p for p in Policy.query.filter_by(holder_user_id=current_user.user_id, status="active").all()
+                if not p.end_date or p.end_date >= today
+            ]
             if not user_policies:
                 flash("You do not have any active policies to file a claim against.", "warning")
                 return redirect(url_for("my_policies"))
-            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} - {p.plan.plan_name}") for p in user_policies]
+            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} - {p.plan.plan_name} (Active)") for p in user_policies]
             
             selected_pol_id = form.policy_id.data or user_policies[0].policy_id
             members = Member.query.filter_by(policy_id=selected_pol_id).all()
@@ -602,13 +614,20 @@ def create_app(config_class=Config):
             form.hospital_id.choices = [(my_hospital.hospital_id, f"{my_hospital.name} (Network Desk)")]
             form.claim_type.choices = [("cashless", "Cashless")]
             
-            active_pols = Policy.query.filter_by(status="active").all()
-            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} ({p.holder.display_name}) - {p.plan.plan_name}") for p in active_pols]
-            selected_pol_id = form.policy_id.data or (active_pols[0].policy_id if active_pols else None)
+            # ONLY ACTIVE POLICIES
+            active_pols = [
+                p for p in Policy.query.filter_by(status="active").all()
+                if not p.end_date or p.end_date >= today
+            ]
+            if not active_pols:
+                flash("No active policies currently available in the network database.", "warning")
+                return redirect(url_for("claim_list"))
+            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} ({p.holder.display_name}) - {p.plan.plan_name} (Active)") for p in active_pols]
+            selected_pol_id = form.policy_id.data or active_pols[0].policy_id
             members = Member.query.filter_by(policy_id=selected_pol_id).all() if selected_pol_id else []
             form.member_id.choices = [(m.member_id, f"{m.display_name} ({m.relationship_type})") for m in members]
 
-        # Collate policy coverage limits metadata for client-side and server-side checks
+        # Collate policy coverage limits and covered treatments metadata
         policy_limits = {}
         candidate_policies = user_policies if current_user.is_policyholder else active_pols
         for p in candidate_policies:
@@ -620,7 +639,8 @@ def create_app(config_class=Config):
                 "max_allowed": float(max_limit),
                 "plan_name": p.plan.plan_name,
                 "deductible": float(p.plan.deductible_inr),
-                "copay": float(p.plan.copay_percent)
+                "copay": float(p.plan.copay_percent),
+                "covered_treatment_types": p.plan.covered_treatment_types
             }
 
         if form.validate_on_submit():
@@ -631,8 +651,23 @@ def create_app(config_class=Config):
             member = Member.query.get(form.member_id.data)
             hospital = Hospital.query.get(form.hospital_id.data)
             
-            if not policy or member.policy_id != policy.policy_id:
+            # 1. Enforce active policy only
+            if not policy or policy.status != "active" or (policy.end_date and policy.end_date < date.today()):
+                flash("Validation Error: Claims can only be filed against active policies. The selected policy is inactive or expired.", "danger")
+                return render_template("claim_form.html", form=form, is_edit=False, policy_limits=policy_limits)
+
+            # 2. Member validation
+            if not member or member.policy_id != policy.policy_id:
                 flash("Selected member does not belong to the selected policy.", "danger")
+                return render_template("claim_form.html", form=form, is_edit=False, policy_limits=policy_limits)
+
+            # 3. Treatment Type validation based on selected policy plan
+            if not policy.plan.is_treatment_covered(form.treatment_type.data):
+                covered_text = policy.plan.covered_treatment_types.replace("|", ", ").title()
+                flash(
+                    f"Validation Error: Treatment type '{form.treatment_type.data.capitalize()}' is not covered under the {policy.plan.plan_name} plan. This policy only covers: {covered_text}.",
+                    "danger"
+                )
                 return render_template("claim_form.html", form=form, is_edit=False, policy_limits=policy_limits)
 
             if current_user.is_hospital_desk and hospital.hospital_id != current_user.hospital_id:
@@ -750,10 +785,14 @@ def create_app(config_class=Config):
 
         form = ClaimForm(obj=claim)
         
-        # Populate Select choices
+        today = date.today()
+        # Populate Select choices - ONLY ACTIVE POLICIES
         if current_user.is_policyholder:
-            user_policies = Policy.query.filter_by(holder_user_id=current_user.user_id, status="active").all()
-            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} - {p.plan.plan_name}") for p in user_policies]
+            user_policies = [
+                p for p in Policy.query.filter_by(holder_user_id=current_user.user_id, status="active").all()
+                if not p.end_date or p.end_date >= today
+            ]
+            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} - {p.plan.plan_name} (Active)") for p in user_policies]
             members = Member.query.filter_by(policy_id=claim.policy_id).all()
             form.member_id.choices = [(m.member_id, f"{m.display_name} ({m.relationship_type})") for m in members]
             form.hospital_id.choices = [(h.hospital_id, f"{h.name} - {h.city}") for h in Hospital.query.order_by(Hospital.name).all()]
@@ -762,47 +801,236 @@ def create_app(config_class=Config):
             my_hospital = Hospital.query.get(current_user.hospital_id)
             form.hospital_id.choices = [(my_hospital.hospital_id, f"{my_hospital.name} (Network Desk)")]
             form.claim_type.choices = [("cashless", "Cashless")]
-            active_pols = Policy.query.filter_by(status="active").all()
-            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} ({p.holder.display_name}) - {p.plan.plan_name}") for p in active_pols]
+            active_pols = [
+                p for p in Policy.query.filter_by(status="active").all()
+                if not p.end_date or p.end_date >= today
+            ]
+            form.policy_id.choices = [(p.policy_id, f"Policy #{p.policy_id} ({p.holder.display_name}) - {p.plan.plan_name} (Active)") for p in active_pols]
             members = Member.query.filter_by(policy_id=claim.policy_id).all()
             form.member_id.choices = [(m.member_id, f"{m.display_name} ({m.relationship_type})") for m in members]
 
+        # Calculate policy limits and covered treatment types for edit form validation
+        policy_limits = {}
+        candidate_policies = user_policies if current_user.is_policyholder else active_pols
+        for p in candidate_policies:
+            rem = calculate_remaining_cover(p, date.today())
+            max_limit = min(rem, p.plan.annual_limit_inr)
+            policy_limits[p.policy_id] = {
+                "annual_limit": float(p.plan.annual_limit_inr),
+                "remaining_cover": float(rem),
+                "max_allowed": float(max_limit),
+                "plan_name": p.plan.plan_name,
+                "deductible": float(p.plan.deductible_inr),
+                "copay": float(p.plan.copay_percent),
+                "covered_treatment_types": p.plan.covered_treatment_types
+            }
+
         if form.validate_on_submit():
             is_submit = bool(form.submit_claim.data)
+            
+            # Validate selected policy is active
+            selected_pol = Policy.query.get(form.policy_id.data)
+            if not selected_pol or selected_pol.status != "active" or (selected_pol.end_date and selected_pol.end_date < today):
+                flash("Validation Error: Claims can only be filed against active policies.", "danger")
+                return render_template("claim_form.html", form=form, is_edit=True, claim=claim, policy_limits=policy_limits)
+
+            # Validate Treatment Type based on the selected Policy's Plan
+            if not selected_pol.plan.is_treatment_covered(form.treatment_type.data):
+                covered_text = selected_pol.plan.covered_treatment_types.replace("|", ", ").title()
+                flash(
+                    f"Validation Error: Treatment type '{form.treatment_type.data.capitalize()}' is not covered under the {selected_pol.plan.plan_name} plan. This policy only covers: {covered_text}.",
+                    "danger"
+                )
+                return render_template("claim_form.html", form=form, is_edit=True, claim=claim, policy_limits=policy_limits)
+
+            if is_submit and form.admission_date.data > date.today():
+                flash("Cannot submit a claim with a future admission date. Save as Draft until admission.", "danger")
+                return render_template("claim_form.html", form=form, is_edit=True, claim=claim, policy_limits=policy_limits)
+
+            # Strict Policy Amount Validation
+            remaining_cover = calculate_remaining_cover(selected_pol, form.admission_date.data)
+            max_policy_amount = min(remaining_cover, selected_pol.plan.annual_limit_inr)
+            requested_val = round_inr(Decimal(str(form.requested_amount_inr.data)))
+            if requested_val > max_policy_amount:
+                flash(
+                    f"Validation Error: Claim amount (₹{requested_val:,.2f}) cannot exceed the maximum policy coverage limit of ₹{max_policy_amount:,.2f}. Please adjust the requested amount.",
+                    "danger"
+                )
+                return render_template("claim_form.html", form=form, is_edit=True, claim=claim, policy_limits=policy_limits)
+
             claim.policy_id = form.policy_id.data
             claim.member_id = form.member_id.data
             claim.hospital_id = form.hospital_id.data
             claim.treatment_type = form.treatment_type.data
             claim.admission_date = form.admission_date.data
             claim.discharge_date = form.discharge_date.data
-            claim.requested_amount_inr = round_inr(Decimal(str(form.requested_amount_inr.data)))
+            claim.requested_amount_inr = requested_val
             claim.description = form.description.data.strip() if form.description.data else None
             claim.updated_at = datetime.utcnow()
             
             old_status = claim.status
             if is_submit:
-                claim.status = "submitted"
+                # Automatic Round-Robin Assignment Method across active Claims Officers
+                officers = User.query.filter_by(role="claims_officer", is_active_user=True).order_by(User.user_id.asc()).all()
+                assigned_officer = None
+                if officers:
+                    last_assigned = Claim.query.filter(Claim.officer_user_id.isnot(None), Claim.claim_id != claim.claim_id).order_by(Claim.claim_id.desc()).first()
+                    if last_assigned and last_assigned.officer_user_id:
+                        officer_ids = [o.user_id for o in officers]
+                        try:
+                            last_idx = officer_ids.index(last_assigned.officer_user_id)
+                            next_idx = (last_idx + 1) % len(officers)
+                        except ValueError:
+                            next_idx = 0
+                        assigned_officer = officers[next_idx]
+                    else:
+                        assigned_officer = officers[0]
+
+                claim.status = "in_review"
+                claim.officer_user_id = assigned_officer.user_id if assigned_officer else None
                 claim.submitted_at = datetime.utcnow()
+
+                # Mark documents received upon submission
+                for doc in claim.documents:
+                    if doc.checklist_status == "missing":
+                        doc.checklist_status = "received"
+
+                note = (
+                    f"Draft claim submitted and automatically assigned to Claims Officer {assigned_officer.display_name} via Round-Robin method."
+                    if assigned_officer
+                    else "Draft claim submitted for adjudication review."
+                )
                 add_claim_history(
                     claim_id=claim.claim_id,
                     from_status=old_status,
-                    to_status="submitted",
+                    to_status="in_review",
                     actor_user_id=current_user.user_id,
-                    note="Draft updated and submitted for review."
+                    note=note
+                )
+
+                if assigned_officer:
+                    create_notification(
+                        user_id=assigned_officer.user_id,
+                        title="Claim Assigned (Round-Robin)",
+                        message=f"Draft Claim CLM-{claim.claim_id:06d} for {claim.member.display_name} (₹{claim.requested_amount_inr:,.2f}) has been submitted and automatically assigned to you via Round-Robin method.",
+                        category="info",
+                        claim_id=claim.claim_id
+                    )
+
+                db.session.commit()
+                flash(
+                    f"Draft Claim CLM-{claim.claim_id:06d} successfully submitted and assigned to Claims Officer {assigned_officer.display_name if assigned_officer else 'the Review Queue'}!",
+                    "success"
                 )
             else:
                 add_claim_history(
                     claim_id=claim.claim_id,
                     from_status=old_status,
-                    to_status=old_status,
+                    to_status="draft",
                     actor_user_id=current_user.user_id,
-                    note="Draft claim details updated."
+                    note="Draft claim details saved and updated."
                 )
-            db.session.commit()
-            flash("Claim updated successfully.", "success")
+                db.session.commit()
+                flash(f"Draft Claim CLM-{claim.claim_id:06d} updated and saved as Draft.", "success")
+                
             return redirect(url_for("claim_detail", claim_id=claim.claim_id))
 
-        return render_template("claim_form.html", form=form, is_edit=True, claim=claim)
+        return render_template("claim_form.html", form=form, is_edit=True, claim=claim, policy_limits=policy_limits)
+
+    @app.route("/claims/<int:claim_id>/submit-draft", methods=["POST"])
+    @login_required
+    def submit_draft_claim(claim_id):
+        claim = Claim.query.get_or_404(claim_id)
+        if not can_user_edit_claim(current_user, claim):
+            abort(403)
+        if claim.status != "draft":
+            flash("Only claims in Draft status can be submitted for review.", "warning")
+            return redirect(url_for("claim_detail", claim_id=claim.claim_id))
+
+        today = date.today()
+        # 1. Enforce active policy only
+        if not claim.policy or claim.policy.status != "active" or (claim.policy.end_date and claim.policy.end_date < today):
+            flash("Validation Error: Claims can only be filed against active policies. The associated policy is expired or inactive.", "danger")
+            return redirect(url_for("claim_detail", claim_id=claim.claim_id))
+
+        # 2. Treatment Type validation
+        if not claim.policy.plan.is_treatment_covered(claim.treatment_type):
+            covered_text = claim.policy.plan.covered_treatment_types.replace("|", ", ").title()
+            flash(
+                f"Validation Error: Treatment type '{claim.treatment_type.capitalize()}' is not covered under the {claim.policy.plan.plan_name} plan. This policy only covers: {covered_text}.",
+                "danger"
+            )
+            return redirect(url_for("edit_claim", claim_id=claim.claim_id))
+
+        # 3. Admission Date validation
+        if claim.admission_date > today:
+            flash("Cannot submit a claim with a future admission date. Please edit the dates before submitting.", "danger")
+            return redirect(url_for("edit_claim", claim_id=claim.claim_id))
+
+        # 4. Strict Amount validation
+        remaining_cover = calculate_remaining_cover(claim.policy, claim.admission_date)
+        max_policy_amount = min(remaining_cover, claim.policy.plan.annual_limit_inr)
+        if claim.requested_amount_inr > max_policy_amount:
+            flash(
+                f"Validation Error: Requested amount (₹{claim.requested_amount_inr:,.2f}) exceeds the maximum policy coverage limit of ₹{max_policy_amount:,.2f}.",
+                "danger"
+            )
+            return redirect(url_for("edit_claim", claim_id=claim.claim_id))
+
+        # 5. Round-Robin Assignment
+        officers = User.query.filter_by(role="claims_officer", is_active_user=True).order_by(User.user_id.asc()).all()
+        assigned_officer = None
+        if officers:
+            last_assigned = Claim.query.filter(Claim.officer_user_id.isnot(None), Claim.claim_id != claim.claim_id).order_by(Claim.claim_id.desc()).first()
+            if last_assigned and last_assigned.officer_user_id:
+                officer_ids = [o.user_id for o in officers]
+                try:
+                    last_idx = officer_ids.index(last_assigned.officer_user_id)
+                    next_idx = (last_idx + 1) % len(officers)
+                except ValueError:
+                    next_idx = 0
+                assigned_officer = officers[next_idx]
+            else:
+                assigned_officer = officers[0]
+
+        claim.status = "in_review"
+        claim.officer_user_id = assigned_officer.user_id if assigned_officer else None
+        claim.submitted_at = datetime.utcnow()
+        claim.updated_at = datetime.utcnow()
+
+        # Mark documents received
+        for doc in claim.documents:
+            if doc.checklist_status == "missing":
+                doc.checklist_status = "received"
+
+        note = (
+            f"Draft claim submitted directly and automatically assigned to Claims Officer {assigned_officer.display_name} via Round-Robin method."
+            if assigned_officer
+            else "Draft claim submitted directly for review."
+        )
+        add_claim_history(
+            claim_id=claim.claim_id,
+            from_status="draft",
+            to_status="in_review",
+            actor_user_id=current_user.user_id,
+            note=note
+        )
+
+        if assigned_officer:
+            create_notification(
+                user_id=assigned_officer.user_id,
+                title="Claim Assigned (Round-Robin)",
+                message=f"Draft Claim CLM-{claim.claim_id:06d} for {claim.member.display_name} (₹{claim.requested_amount_inr:,.2f}) has been submitted and assigned to you via Round-Robin method.",
+                category="info",
+                claim_id=claim.claim_id
+            )
+
+        db.session.commit()
+        flash(
+            f"Claim CLM-{claim.claim_id:06d} successfully submitted for review and assigned to Claims Officer {assigned_officer.display_name if assigned_officer else 'the Review Queue'}!",
+            "success"
+        )
+        return redirect(url_for("claim_detail", claim_id=claim.claim_id))
 
     @app.route("/claims/<int:claim_id>/withdraw", methods=["POST"])
     @login_required

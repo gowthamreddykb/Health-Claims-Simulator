@@ -19,8 +19,7 @@ class Config:
     
     # Support MySQL with fallback to SQLite for local development or CI testing
     DEFAULT_MYSQL_URI = f"mysql+pymysql://{auth_part}{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "mysql+mysqlconnector://root:gowtham%4069@127.0.0.1:3306/health_insurance_claims")
-
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", DEFAULT_MYSQL_URI)
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
